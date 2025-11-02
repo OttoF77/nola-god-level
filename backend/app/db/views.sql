@@ -1,0 +1,40 @@
+-- Views analíticas (opcionais). No MVP usamos joins diretos nas tabelas base.
+-- Este arquivo documenta a intenção e facilita otimizações futuras.
+
+-- create view vw_dim_time as
+-- select
+--   date(created_at) as date,
+--   extract(year from created_at)::int as year,
+--   extract(month from created_at)::int as month,
+--   extract(day from created_at)::int as day,
+--   to_char(created_at, 'Day') as dow,
+--   extract(hour from created_at)::int as hour
+-- from sales;
+
+-- create view vw_fact_sales as
+-- select s.id as sale_id,
+--        s.created_at,
+--        s.store_id,
+--        s.channel_id,
+--        s.customer_id,
+--        s.sale_status_desc,
+--        s.total_amount,
+--        s.total_discount,
+--        s.delivery_fee,
+--        s.service_tax_fee,
+--        s.value_paid,
+--        s.production_seconds,
+--        s.delivery_seconds
+-- from sales s;
+
+-- create view vw_fact_product_sales as
+-- select ps.id as product_sale_id,
+--        ps.sale_id,
+--        s.created_at,
+--        s.store_id,
+--        s.channel_id,
+--        ps.product_id,
+--        ps.quantity,
+--        ps.total_price
+-- from product_sales ps
+-- join sales s on s.id = ps.sale_id;

@@ -1,79 +1,121 @@
-# 🏆 God Level Coder Challenge
+# Nola — Analytics de Varejo (FastAPI + React + PostgreSQL)
 
-## O Problema
+Este projeto implementa um monólito modular com backend FastAPI e frontend React (Vite) para explorar dados de vendas, produtos e pagamentos de uma rede de restaurantes. Ele foi desenvolvido para atender ao desafio descrito em `requisitos-desafio/PROBLEMA.md` e avaliado segundo `requisitos-desafio/AVALIACAO.md`.
 
-Donos de restaurantes gerenciam operações complexas através de múltiplos canais (presencial, iFood, Rappi, app próprio). Eles têm dados de **vendas, produtos, clientes e operações**, mas não conseguem extrair insights personalizados para tomar decisões de negócio.
+## Visão geral
 
-Ferramentas como Power BI são genéricas demais. Dashboards fixos não respondem perguntas específicas. **Como empoderar donos de restaurantes a explorarem seus próprios dados?**
+- Backend: FastAPI com endpoints `/api/metadata`, `/api/query`, `/api/distinct` e `/api/data-range`.
+- Frontend: SPA React com três visões por papel (Marketing, Gerência e Financeiro) e um Explorer para análise livre.
+- Banco: PostgreSQL com schema do desafio, seed via `generate_data.py`.
+- Docker Compose: orquestração de Postgres, Backend e Frontend.
 
-## Seu Desafio
+## Tecnologias
 
-Construa uma solução que permita donos de restaurantes **criarem suas próprias análises** sobre seus dados operacionais. Pense: "Power BI para restaurantes" ou "Metabase específico para food service".
+- Python 3.11, FastAPI, psycopg2
+- React 18 + Vite, Recharts, Bootstrap
+- PostgreSQL 15
+- Docker/Docker Compose
 
-### O que esperamos
+## Arquitetura
 
-Uma plataforma onde um dono de restaurante possa:
-- Visualizar métricas relevantes (faturamento, produtos mais vendidos, horários de pico)
-- Criar dashboards personalizados sem escrever código
-- Comparar períodos e identificar tendências
-- Extrair valor de dados complexos de forma intuitiva
+A arquitetura é detalhada em `ARQUITETURA.md`. Destaques:
+- Query JSON → SQL com validação por papel (whitelists) em `backend/app/domain/translator.py`.
+- Modelo analítico declarativo em `backend/app/domain/model.yaml`.
+- Cache in-memory com TTL (`backend/app/core/cache.py`).
+- Frontend organizado por views de papel, com componentes reutilizáveis (Explorer e Sidebar/ExplorerControls).
 
-### O que você recebe
+## Como rodar (local)
 
-- Script para geração de **500.000 vendas** de 6 meses (50 lojas, múltiplos canais)
-- Schema PostgreSQL com dados realistas de operação
-- Liberdade total de tecnologias e arquitetura
-- Liberdade total no uso de AI e ferramentas de geração de código
+1. Suba o Postgres e gere dados (opcional):
 
-### O que você entrega
+```bash
+# Iniciar Postgres
+docker compose up -d postgres
+# Gerar dados (perfil tools)
+docker compose --profile tools run --rm data-generator
+```
 
-1. Uma solução funcionando (deployed ou local) - com frontend e backend adequados ao banco fornecido
-2. Documentação de decisões arquiteturais
-3. Demo em vídeo (5-10 min) explicando sua abordagem - mostrando a solução funcional e deployada / rodando na sua máquina, apresentando-a no nível de detalhes que julgar relevante
-4. Código bem escrito e testável
+2. Backend em dev (fora do Docker):
 
-## 📚 Documentação
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
-| Documento | Descrição |
-|-----------|-----------|
-| [PROBLEMA.md](./PROBLEMA.md) | Contexto detalhado, persona Maria, dores do usuário |
-| [DADOS.md](./DADOS.md) | Schema completo, padrões, volume de dados |
-| [AVALIACAO.md](./AVALIACAO.md) | Como avaliaremos sua solução |
-| [FAQ.md](./FAQ.md) | Perguntas frequentes |
-| [QUICKSTART.md](./QUICKSTART.md) | Tutorial rápido para começar o desafio |
+3. Frontend em dev:
 
-## Avaliação
+```bash
+cd frontend
+npm install
+# configure VITE_API_BASE_URL em frontend/.env.local se necessário
+npm run dev
+```
 
-**Não** estamos avaliando se você seguiu instruções específicas.  
-**Sim** estamos avaliando:
-- Pensamento arquitetural e decisões técnicas
-- Qualidade da solução para o problema do usuário
-- Performance e escala
-- UX e usabilidade
-- Metodologia de trabalho e entrega
+4. End-to-end com Docker Compose:
 
+```bash
+docker compose up -d backend frontend
+```
 
-## Prazo
+## O que foi pedido no desafio (e como atendemos)
 
-Até 03/11/2025 às 23:59.
+Veja `requisitos-desafio/PROBLEMA.md` e `requisitos-desafio/AVALIACAO.md`. Em resumo, o app entrega:
+- Dashboard por papel (Marketing, Gerência, Financeiro) com métricas chave: faturamento, pedidos, ticket médio, top produtos, canais e métodos de pagamento.
+- Explorer (análise livre) com seleção de medidas/dimensões, filtros, granularidade e exportação CSV.
+- Performance prática: índices no banco, limites de consulta, timeout e cache simples.
+- UX cuidada: legendas reposicionadas para melhor leitura, nomes amigáveis PT‑BR e tabela formatada.
 
-## Submissão
+## Estrutura de diretórios
 
-Mande um email para gsilvestre@arcca.io
+```
+backend/           # FastAPI, domínio e SQL de apoio
+frontend/          # React (Vite), componentes e views
+requisitos-desafio/
+  ├─ database-schema.sql
+  ├─ requirements.txt       # deps do data-generator
+  ├─ PROBLEMA.md
+  └─ AVALIACAO.md
+Dockerfile         # data-generator
+docker-compose.yml # Postgres + Backend + Frontend (+ tools)
+```
 
-Com:
-- Link do repositório (público ou nos dê acesso)
-- Link do vídeo demo (5-10 min)
-- Link do deploy (opcional mas valorizado)
-- Documento de decisões arquiteturais
+Nota: `database-schema.sql` e `requirements.txt` foram movidos para `requisitos-desafio/` e as referências no Compose/Dockerfile foram atualizadas.
 
-## Suporte
-- 💬 **Discord**: https://discord.gg/pRwmm64Vej
-- 📧 **Email**: gsilvestre@arcca.io
-- 📧 **Telefone**: (11) 93016 - 3509
+## Decisões de projeto
+
+- Monólito modular: simplicidade e velocidade para MVP; fácil de particionar no futuro.
+- Whitelist por papel: reduz acoplamento e risco sem exigir autenticação sofisticada.
+- Cache em memória: suficiente para o escopo; Redis é caminho natural para escalar.
+- Recharts: produtividade e boa integração com dados agregados.
+
+## Deploy (Azure ou Oracle Cloud)
+
+Opção A — Azure (mais simples):
+- Banco: Azure Database for PostgreSQL (ou Postgres em Container Apps com volume persistente).
+- Backend: Azure App Service (container) expondo porta 8000.
+- Frontend: Azure Static Web Apps ou App Service (container) servindo build estático.
+- Configurações:
+  - BACKEND: `DATABASE_URL`, `ALLOW_ORIGINS` (domínio do frontend), `STATEMENT_TIMEOUT`.
+  - FRONTEND: `VITE_API_BASE_URL` apontando para o backend.
+
+Opção B — Oracle Cloud (Free Tier):
+- Subir uma VM com Docker e rodar `docker compose up -d` (como em dev).
+- Abrir portas 8000 (backend) e 5173 (frontend) no security list.
+- Recomenda-se um proxy (Caddy/Traefik) para TLS e domínios.
+
+## Testes rápidos
+
+- Healthcheck: `GET http://localhost:8000/health`.
+- Metadata: `GET http://localhost:8000/api/metadata`.
+- Consulta exemplo (sales por dia): POST `/api/query` com corpo em `ARQUITETURA.md`.
+
+## Troubleshooting
+
+- Erros CORS: verifique `ALLOW_ORIGINS` no backend e `VITE_API_BASE_URL` no frontend.
+- Tempo de consulta: ajustar `STATEMENT_TIMEOUT` e revisar índices/intervalo de datas.
+- Dados vazios: confirme que rodou o `data-generator` e o período selecionado tem dados.
 
 ---
 
-**Não queremos que você adivinhe o que queremos. Queremos ver como VOCÊ resolveria este problema.**
-
-_Nola • 2025_
+Contribuições e melhorias são bem-vindas. Explore os arquivos com comentários em PT‑BR para acelerar a leitura do código.

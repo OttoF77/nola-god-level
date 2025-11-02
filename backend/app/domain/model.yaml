@@ -1,0 +1,103 @@
+cubes:
+  sales:
+    dimensions:
+      - time.date
+      - store.name
+      - channel.name
+      - sales.status
+    measures:
+      - sales.total_amount
+      - sales.orders
+      - sales.ticket_medio
+      - sales.discount
+      - sales.delivery_fee
+      - sales.service_fee
+      - sales.increase
+  products:
+    dimensions:
+      - time.date
+      - store.name
+      - channel.name
+      - product.name
+    measures:
+      - products.quantity
+      - products.revenue
+  payments:
+    dimensions:
+      - time.date
+      - store.name
+      - channel.name
+      - payment.type
+      - payment.online
+    measures:
+      - payments.amount
+      - payments.count
+
+roles:
+  marketing:
+    cubes:
+      - sales
+      - products
+      - payments
+    allowed_measures:
+      - sales.total_amount
+      - sales.orders
+      - sales.ticket_medio
+      - products.quantity
+      - products.revenue
+      - payments.amount
+      - payments.count
+    allowed_dimensions:
+      - time.date
+      - store.name
+      - channel.name
+      - product.name
+      - sales.status
+      - payment.type
+      - payment.online
+  gerencia:
+    cubes:
+      - sales
+      - products
+      - payments
+    allowed_measures:
+      - sales.total_amount
+      - sales.orders
+      - sales.ticket_medio
+      - sales.discount
+      - sales.delivery_fee
+      - sales.service_fee
+      - sales.increase
+      - products.quantity
+      - products.revenue
+      - payments.amount
+      - payments.count
+    allowed_dimensions:
+      - time.date
+      - store.name
+      - channel.name
+      - product.name
+      - sales.status
+      - payment.type
+      - payment.online
+  financeiro:
+    cubes:
+      - sales
+      - payments
+    allowed_measures:
+      - sales.total_amount
+      - sales.orders
+      - sales.ticket_medio
+      - sales.discount
+      - sales.delivery_fee
+      - sales.service_fee
+      - sales.increase
+      - payments.amount
+      - payments.count
+    allowed_dimensions:
+      - time.date
+      - store.name
+      - channel.name
+      - sales.status
+      - payment.type
+      - payment.online

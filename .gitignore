@@ -35,3 +35,7 @@ build/
 # OS
 Thumbs.db
 
+# Copilot instructions (documentação interna para agentes)
+.github/copilot-instructions.md
+copilot-instructions.md
+
