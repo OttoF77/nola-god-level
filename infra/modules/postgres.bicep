@@ -50,7 +50,7 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-pr
   }
 }
 
-// Firewall: permite conexões do Azure (Container Apps)
+// Firewall: permite conexões do Azure (Container Apps). Para produção, prefira VNet integration.
 resource firewallRuleAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
   parent: postgresServer
   name: 'AllowAzureServices'
@@ -59,6 +59,16 @@ resource firewallRuleAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRu
     endIpAddress: '0.0.0.0' // Permite serviços internos do Azure
   }
 }
+
+// Opcional: bloquear todo o acesso público e usar redes privadas (descomente se já tiver VNet)
+// resource pna 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2023-03-01-preview' = {
+//   parent: postgresServer
+//   name: 'publicNetworkAccess'
+//   properties: {
+//     value: 'Disabled'
+//     source: 'user-override'
+//   }
+// }
 
 // Banco de dados principal
 resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {

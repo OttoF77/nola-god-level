@@ -48,6 +48,22 @@ class QueryRequest(BaseModel):
     order: List[OrderSpec] = []
     limit: int = 100
 
+    def validate_security(self):
+        # Limites para evitar abusos
+        if len(self.measures) > 20:
+            raise ValueError("Excesso de medidas (máx. 20)")
+        if len(self.dimensions) > 10:
+            raise ValueError("Excesso de dimensões (máx. 10)")
+        if len(self.filters) > 20:
+            raise ValueError("Excesso de filtros (máx. 20)")
+        for f in self.filters:
+            # Limitar quantidade e tamanho dos valores em filtros 'in'/'equals'/'between'
+            if f.op == "in" and len(f.values) > 200:
+                raise ValueError("Filtro 'in' com valores demais (máx. 200)")
+            for v in f.values:
+                if isinstance(v, str) and len(v) > 200:
+                    raise ValueError("Valor de filtro muito longo (máx. 200 caracteres)")
+
 
 def fetch_all(sql: str, params: list):
     conn = psycopg2.connect(settings.DATABASE_URL)
@@ -63,6 +79,12 @@ def fetch_all(sql: str, params: list):
 
 @router.post("/query")
 def run_query(req: QueryRequest):
+    # Regras de segurança adicionais
+    try:
+        req.validate_security()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # cache key
     key = json.dumps(req.model_dump(), sort_keys=True)
     cached = ttl_cache.get(key)

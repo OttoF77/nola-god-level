@@ -36,6 +36,16 @@ class DistinctRequest(BaseModel):
     granularity: Optional[Literal["hour", "day", "month"]] = None
     limit: int = 100
 
+    def validate_security(self):
+        if len(self.filters) > 20:
+            raise ValueError("Excesso de filtros (máx. 20)")
+        for f in self.filters:
+            if f.op == "in" and len(f.values) > 200:
+                raise ValueError("Filtro 'in' com valores demais (máx. 200)")
+            for v in f.values:
+                if isinstance(v, str) and len(v) > 200:
+                    raise ValueError("Valor de filtro muito longo (máx. 200 caracteres)")
+
 
 def fetch_all(sql: str, params: list):
     conn = psycopg2.connect(settings.DATABASE_URL)
@@ -50,6 +60,11 @@ def fetch_all(sql: str, params: list):
 
 @router.post("/distinct")
 def get_distinct(req: DistinctRequest):
+    try:
+        req.validate_security()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Contruímos um SELECT apenas com a dimensão e um GROUP BY, limitando o resultado
     # Reutiliza o build_sql para respeitar whitelists por role e aplicar filtros com segurança.
     key = json.dumps(req.model_dump(), sort_keys=True)

@@ -308,7 +308,7 @@ az containerapp registry set \
 
 ### Erro: "PostgreSQL connection refused"
 
-Verifique se o firewall do PostgreSQL permite conexões do Azure:
+Verifique se o firewall do PostgreSQL permite conexões do Azure. Para produção, prefira VNet integration e desabilitar o acesso público:
 
 ```bash
 az postgres flexible-server firewall-rule list \

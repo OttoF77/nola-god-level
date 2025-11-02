@@ -10,8 +10,11 @@ Observações para iniciantes:
 - Se o frontend estiver em outro domínio, ajuste ALLOW_ORIGINS (lista de URLs).
 - Em produção, desative origens genéricas para evitar acessos indevidos.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+from starlette.responses import Response
+import logging
 
 from app.api.metadata import router as metadata_router
 from app.api.query import router as query_router
@@ -30,6 +33,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Redireciona para HTTPS quando suportado pelo ambiente (no Azure, TLS é padrão)
+app.add_middleware(HTTPSRedirectMiddleware)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Adiciona cabeçalhos de segurança nas respostas HTTP.
+
+    - HSTS força HTTPS em navegadores (se servido por HTTPS)
+    - X-Frame-Options bloqueia clickjacking
+    - X-Content-Type-Options impede content sniffing
+    - Referrer-Policy reduz vazamento de url de origem
+    - Permissions-Policy desativa APIs não utilizadas
+    """
+    response: Response = await call_next(request)
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    return response
+
+# Log de alerta se CORS estiver permissivo em produção
+if settings.ALLOW_ORIGINS == ["*"]:
+    logging.getLogger("uvicorn.error").warning(
+        "CORS está liberado para todas as origens ('*'). Defina ALLOW_ORIGINS em produção."
+    )
 
 app.include_router(metadata_router, prefix="/api")
 app.include_router(query_router, prefix="/api")
