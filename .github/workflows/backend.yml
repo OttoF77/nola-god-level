@@ -1,0 +1,92 @@
+# GitHub Actions: Build e Deploy Backend (Container Apps)
+# Trigger: push em backend/ ou manual
+
+name: Backend Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente (dev/staging/prod)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+env:
+  AZURE_RESOURCE_GROUP: nola-rg
+  PROJECT_NAME: nola
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Login no Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login no ACR
+        run: |
+          az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Build e Push da imagem Docker
+        run: |
+          IMAGE_TAG=${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
+          IMAGE_LATEST=${{ env.PROJECT_NAME }}-backend:latest
+          
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG ./backend
+          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_LATEST
+          
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_LATEST
+          
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Deploy no Container Apps
+        run: |
+          ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
+          APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
+          
+          az containerapp update \
+            --name $APP_NAME \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_TAG }} \
+            --set-env-vars \
+              DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              ALLOW_ORIGINS="${{ secrets.ALLOW_ORIGINS }}" \
+              STATEMENT_TIMEOUT="15s"
+
+      - name: Verificar health
+        run: |
+          ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
+          APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
+          
+          FQDN=$(az containerapp show \
+            --name $APP_NAME \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          
+          echo "🚀 Backend deployado: https://$FQDN"
+          echo "🔍 Verificando health..."
+          
+          sleep 15
+          curl -f https://$FQDN/health || exit 1
+
+      - name: Logout Azure
+        run: az logout
+        if: always()
