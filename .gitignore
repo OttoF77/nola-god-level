@@ -39,3 +39,7 @@ Thumbs.db
 .github/copilot-instructions.md
 copilot-instructions.md
 
+# Guias de deploy gerados para operação (não versionar)
+AZURE_SETUP_SUMMARY.md
+QUICKSTART_AZURE.md
+

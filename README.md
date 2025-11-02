@@ -4,7 +4,7 @@ Este projeto implementa um monólito modular com backend FastAPI e frontend Reac
 
 ## 🚀 Quick Start (Azure Deploy)
 
-Para deployar na Azure usando créditos estudantis:
+Para deployar na Azure:
 
 ```bash
 # 1. Executar script de setup (cria infraestrutura e exibe secrets)
@@ -107,9 +107,9 @@ Nota: `database-schema.sql` e `requirements.txt` foram movidos para `requisitos-
 - Cache em memória: suficiente para o escopo; Redis é caminho natural para escalar.
 - Recharts: produtividade e boa integração com dados agregados.
 
-## Deploy (Azure for Students)
+## Deploy (Azure)
 
-Este projeto será deployado na **Azure usando créditos estudantis** ($200 USD), priorizando **serviços gratuitos e de baixo custo** para maximizar o uso do crédito durante o período de avaliação.
+Este projeto está preparado para deploy na **Azure**, priorizando **serviços gratuitos e de baixo custo** para otimizar OPEX do cliente.
 
 ### Arquitetura Azure escolhida
 
@@ -118,7 +118,7 @@ Este projeto será deployado na **Azure usando créditos estudantis** ($200 USD)
 - **Frontend**: Azure Static Web Apps (tier Free). Banda e hospedagem: **$0/mês**.
 - **Container Registry**: Azure Container Registry (tier Basic, $5/mês) para armazenar imagens Docker do backend.
 
-**Custo mensal estimado**: $17–25/mês (~$75–100 durante os 3–4 meses do crédito estudantil).
+**Custo mensal estimado**: $17–25/mês (ambiente de pequeno porte/MVP).
 
 ### Serviços Azure e configuração
 
@@ -177,7 +177,7 @@ Workflow automatizado para build, push e deploy:
 | Container Registry | Basic | $5 |
 | **Total** | | **$17–25/mês** |
 
-**Duração do crédito**: ~8–12 meses com $200 USD (assumindo custo médio de $20/mês).
+Nota de custos ao cliente: valores estimados — variam por região, tráfego real, volume de dados (storage/IOPS) e logs. Para MVP de baixo tráfego, o intervalo de $17–25/mês é típico.
 
 **Otimizações aplicadas**:
 - Container Apps escala para 0 quando ocioso (idle).
