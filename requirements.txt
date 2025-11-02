@@ -1,3 +1,0 @@
-# Arquivo movido para requisitos-desafio/requirements.txt
-# Mantido apenas como ponte informativa para evitar confusões.
-

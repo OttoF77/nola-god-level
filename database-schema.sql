@@ -1,2 +1,0 @@
--- Arquivo movido para requisitos-desafio/database-schema.sql
--- Mantido apenas como ponte informativa para evitar confusões.
