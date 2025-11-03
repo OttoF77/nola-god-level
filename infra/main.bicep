@@ -17,9 +17,16 @@ param location string = resourceGroup().location
 ])
 param environment string = 'dev'
 
-@description('Admin do PostgreSQL')
+@description('Usar banco PostgreSQL existente? Se false, provisiona um novo')
+param useExistingPostgres bool = true
+
+@description('Connection string completa do PostgreSQL existente (obrigatória se useExistingPostgres=true)')
 @secure()
-param postgresAdminPassword string
+param existingDatabaseUrl string = ''
+
+@description('Admin do PostgreSQL (usado apenas se useExistingPostgres=false)')
+@secure()
+param postgresAdminPassword string = ''
 
 // Tags comuns para todos os recursos
 var commonTags = {
@@ -39,8 +46,8 @@ module acr 'modules/acr.bicep' = {
   }
 }
 
-// ========== PostgreSQL Flexible Server ==========
-module postgres 'modules/postgres.bicep' = {
+// ========== PostgreSQL Flexible Server (OPCIONAL - só se useExistingPostgres=false) ==========
+module postgres 'modules/postgres.bicep' = if (!useExistingPostgres) {
   name: 'postgres-deployment'
   params: {
     location: location
@@ -59,10 +66,7 @@ module containerApps 'modules/container-apps.bicep' = {
     projectName: projectName
     environment: environment
     acrLoginServer: acr.outputs.loginServer
-    postgresHost: postgres.outputs.fqdn
-    postgresUser: postgres.outputs.adminUser
-    postgresPassword: postgresAdminPassword
-    postgresDatabase: postgres.outputs.databaseName
+    databaseUrl: useExistingPostgres ? existingDatabaseUrl : 'postgresql://${postgres.outputs.adminUser}:${postgresAdminPassword}@${postgres.outputs.fqdn}:5432/${postgres.outputs.databaseName}?sslmode=require'
     tags: commonTags
   }
 }

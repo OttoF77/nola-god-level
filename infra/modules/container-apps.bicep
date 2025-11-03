@@ -13,18 +13,9 @@ param environment string
 @description('Login server do ACR')
 param acrLoginServer string
 
-@description('Host do PostgreSQL')
-param postgresHost string
-
-@description('Usuário admin do PostgreSQL')
-param postgresUser string
-
-@description('Senha do PostgreSQL')
+@description('Connection string completa do PostgreSQL (suporta banco existente ou novo)')
 @secure()
-param postgresPassword string
-
-@description('Nome do banco PostgreSQL')
-param postgresDatabase string
+param databaseUrl string
 
 @description('Tags do recurso')
 param tags object
@@ -80,7 +71,7 @@ resource backendApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'DATABASE_URL'
-              value: 'postgresql://${postgresUser}:${postgresPassword}@${postgresHost}:5432/${postgresDatabase}?sslmode=require'
+              value: databaseUrl
             }
             {
               name: 'ALLOW_ORIGINS'
