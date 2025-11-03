@@ -9,8 +9,9 @@ Responsabilidades principais:
 - Proteger com LIMIT máximo (10.000) e ordenar apenas por colunas selecionadas.
 
 Como extender:
-- Para adicionar um novo cube, declare em model.yaml e crie novos maps DIM_MAP_*/MEAS_MAP_*.
-- Ajuste _from_and_joins para refletir as tabelas e joins necessários.
+- Para adicionar um novo cube, declare em model.yaml e crie novos maps
+    DIM_MAP_*/MEAS_MAP_*.
+# Ajuste _from_and_joins para refletir as tabelas e joins necessários.
 """
 from typing import List, Tuple, Dict, Any, Optional
 from pathlib import Path
@@ -58,7 +59,11 @@ DIM_MAP_SALES = {
 MEAS_MAP_SALES = {
     "sales.total_amount": ("SUM(s.total_amount)", "numeric"),
     "sales.orders": ("COUNT(*)", "int"),
-    "sales.ticket_medio": ("SUM(s.total_amount) / NULLIF(COUNT(*), 0)", "numeric"),
+    "sales.ticket_medio": (
+        "SUM(s.total_amount) / "
+        "NULLIF(COUNT(*), 0)",
+        "numeric",
+    ),
     "sales.discount": ("SUM(s.total_discount)", "numeric"),
     "sales.delivery_fee": ("SUM(s.delivery_fee)", "numeric"),
     "sales.service_fee": ("SUM(s.service_tax_fee)", "numeric"),
@@ -84,7 +89,10 @@ DIM_MAP_PAYMENTS = {
     "store.name": ("st.name", "text"),
     "channel.name": ("ch.name", "text"),
     "payment.type": ("COALESCE(pt.description, '(sem tipo)')", "text"),
-    "payment.online": ("CASE WHEN pay.is_online THEN 'online' ELSE 'offline' END", "text"),
+    "payment.online": (
+        "CASE WHEN pay.is_online THEN 'online' ELSE 'offline' END",
+        "text",
+    ),
 }
 
 MEAS_MAP_PAYMENTS = {
@@ -101,7 +109,10 @@ def _validate_role(spec: QuerySpec):
     if not role_def:
         raise ValueError(f"Role desconhecida: {spec.role}")
     if spec.cube not in role_def.get("cubes", []):
-        raise ValueError(f"Role {spec.role} não pode consultar o cube {spec.cube}")
+        raise ValueError(
+            f"Role {spec.role} não pode consultar "
+            f"cube {spec.cube}"
+        )
     allowed_measures = set(role_def.get("allowed_measures", []))
     allowed_dims = set(role_def.get("allowed_dimensions", []))
     for m in spec.measures:
@@ -112,7 +123,9 @@ def _validate_role(spec: QuerySpec):
             raise ValueError(f"Dimensão não permitida para {spec.role}: {d}")
     for f in spec.filters:
         if f.get("dimension") not in allowed_dims:
-            raise ValueError(f"Filtro não permitido para {spec.role}: {f.get('dimension')}")
+            raise ValueError(
+                f"Filtro não permitido para {spec.role}: {f.get('dimension')}"
+            )
 
 
 def _cube_maps(cube: str):
@@ -154,7 +167,10 @@ def _from_and_joins(cube: str) -> Tuple[str, List[str]]:
     raise ValueError("Cube inválido")
 
 
-def _apply_granularity(dimensions: List[str], granularity: Optional[str]) -> List[str]:
+def _apply_granularity(
+    dimensions: List[str],
+    granularity: Optional[str],
+) -> List[str]:
     if not granularity:
         return dimensions
     # Só adaptamos time.date caso a granularidade peça mês/hora
@@ -181,7 +197,9 @@ def build_sql(
     order: List[Dict[str, str]],
     limit: int,
 ) -> Tuple[str, List[Any], List[str]]:
-    spec = QuerySpec(cube, role, measures, dimensions, filters, granularity, order, limit)
+    spec = QuerySpec(
+        cube, role, measures, dimensions, filters, granularity, order, limit
+    )
     _validate_role(spec)
 
     dim_map, meas_map = _cube_maps(spec.cube)
@@ -219,7 +237,11 @@ def build_sql(
         select_cols.append(f"{meas_map[m][0]} AS \"{m}\"")
         col_names.append(m)
 
-    select_clause = ", \n       ".join(select_cols) if select_cols else "COUNT(*) AS \"rows\""
+    select_clause = (
+        ", \n       ".join(select_cols)
+        if select_cols
+        else "COUNT(*) AS \"rows\""
+    )
 
     from_clause, _ = _from_and_joins(spec.cube)
 
@@ -266,7 +288,9 @@ def build_sql(
             if by not in safe_cols:
                 # permitir ordenar por measure mesmo que não seja dimensão
                 if by not in safe_cols:
-                    raise ValueError(f"Ordenação por coluna não selecionada: {by}")
+                    raise ValueError(
+                        f"Ordenação por coluna não selecionada: {by}"
+                    )
             if direction not in ("asc", "desc"):
                 direction = "desc"
             order_parts.append(f'"{by}" {direction}')

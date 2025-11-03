@@ -2,13 +2,17 @@
 Rotas de consulta analítica.
 
 POST /api/query
-- Recebe uma Query JSON (cubo, medidas, dimensões, filtros, granularidade, ordenação, limite).
-- Converte a Query em SQL via translator.build_sql, valida papéis (role) e whitelist.
-- Executa no PostgreSQL com RealDictCursor e aplica statement_timeout para evitar travas.
+- Recebe uma Query JSON (cubo, medidas, dimensões, filtros,
+    granularidade, ordenação, limite).
+- Converte a Query em SQL via translator.build_sql, valida papéis
+    (role) e whitelist.
+- Executa no PostgreSQL com RealDictCursor e aplica statement_timeout
+    para evitar travas.
 - Cacheia o resultado por 120s usando uma chave derivada do corpo JSON.
 
 Dicas:
-- O campo "order" só pode ordenar por colunas selecionadas (validado no translator).
+- O campo "order" só pode ordenar por colunas selecionadas
+    (validado no translator).
 - O "limit" é clamped no translator para proteger o banco (máx. 10.000).
 """
 from fastapi import APIRouter, HTTPException
@@ -39,7 +43,10 @@ class OrderSpec(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    role: Optional[str] = Field(default=None, description="marketing|gerencia|financeiro")
+    role: Optional[str] = Field(
+        default=None,
+        description="roles: marketing|gerencia|financeiro",
+    )
     cube: Literal["sales", "products", "payments"]
     measures: List[str]
     dimensions: List[str] = []
@@ -57,12 +64,15 @@ class QueryRequest(BaseModel):
         if len(self.filters) > 20:
             raise ValueError("Excesso de filtros (máx. 20)")
         for f in self.filters:
-            # Limitar quantidade e tamanho dos valores em filtros 'in'/'equals'/'between'
+            # Limitar quantidade e tamanho dos valores
+            # em filtros 'in'/'equals'/'between'
             if f.op == "in" and len(f.values) > 200:
                 raise ValueError("Filtro 'in' com valores demais (máx. 200)")
             for v in f.values:
                 if isinstance(v, str) and len(v) > 200:
-                    raise ValueError("Valor de filtro muito longo (máx. 200 caracteres)")
+                    raise ValueError(
+                        "Valor de filtro muito longo (máx. 200 caracteres)"
+                    )
 
 
 def fetch_all(sql: str, params: list):
@@ -70,7 +80,10 @@ def fetch_all(sql: str, params: list):
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Proteção contra consultas longas
-            cur.execute("SET statement_timeout TO %s", (settings.STATEMENT_TIMEOUT,))
+            cur.execute(
+                "SET statement_timeout TO %s",
+                (settings.STATEMENT_TIMEOUT,),
+            )
             cur.execute(sql, params)
             return cur.fetchall()
     finally:
@@ -89,7 +102,11 @@ def run_query(req: QueryRequest):
     key = json.dumps(req.model_dump(), sort_keys=True)
     cached = ttl_cache.get(key)
     if cached is not None:
-        return {"cached": True, "rows": cached["rows"], "columns": cached["columns"]}
+        return {
+            "cached": True,
+            "rows": cached["rows"],
+            "columns": cached["columns"],
+        }
 
     try:
         sql, params, columns = build_sql(

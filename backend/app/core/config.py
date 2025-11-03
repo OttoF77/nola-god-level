@@ -5,7 +5,8 @@ Configurações de aplicação carregadas via variáveis de ambiente.
 - ALLOW_ORIGINS: lista de origens permitidas no CORS (separadas por vírgula).
 - STATEMENT_TIMEOUT: timeout de execução por consulta no Postgres.
 
-Nota: usamos field(default_factory=...) para evitar mutáveis como default (boa prática).
+Nota: usamos field(default_factory=...) para evitar mutáveis como default
+(boa prática).
 """
 import os
 from dataclasses import dataclass, field

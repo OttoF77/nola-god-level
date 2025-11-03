@@ -2,8 +2,10 @@
 Endpoint para recuperar valores distintos de uma dimensão.
 
 POST /api/distinct
-- Recebe o nome de uma dimensão e filtros opcionais; responde com a lista de valores únicos.
-- Usa o translator para garantir que a dimensão é permitida pelo papel (role) e aplicar filtros.
+- Recebe o nome de uma dimensão e filtros opcionais; responde com
+    a lista de valores únicos.
+- Usa o translator para garantir que a dimensão é permitida pelo papel
+    (role) e aplicar filtros.
 - Cacheia por 300s com chave derivada do corpo da requisição.
 """
 from fastapi import APIRouter, HTTPException
@@ -44,14 +46,19 @@ class DistinctRequest(BaseModel):
                 raise ValueError("Filtro 'in' com valores demais (máx. 200)")
             for v in f.values:
                 if isinstance(v, str) and len(v) > 200:
-                    raise ValueError("Valor de filtro muito longo (máx. 200 caracteres)")
+                    raise ValueError(
+                        "Valor de filtro muito longo (máx. 200 caracteres)"
+                    )
 
 
 def fetch_all(sql: str, params: list):
     conn = psycopg2.connect(settings.DATABASE_URL)
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SET statement_timeout TO %s", (settings.STATEMENT_TIMEOUT,))
+            cur.execute(
+                "SET statement_timeout TO %s",
+                (settings.STATEMENT_TIMEOUT,),
+            )
             cur.execute(sql, params)
             return cur.fetchall()
     finally:
@@ -65,8 +72,9 @@ def get_distinct(req: DistinctRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Contruímos um SELECT apenas com a dimensão e um GROUP BY, limitando o resultado
-    # Reutiliza o build_sql para respeitar whitelists por role e aplicar filtros com segurança.
+    # Contruímos um SELECT apenas com a dimensão e um GROUP BY,
+    # limitando o resultado. Reutiliza o build_sql para respeitar
+    # whitelists por role e aplicar filtros com segurança.
     key = json.dumps(req.model_dump(), sort_keys=True)
     cached = ttl_cache.get(key)
     if cached is not None:
