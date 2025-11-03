@@ -50,3 +50,34 @@
 .sidebar .nav-link.active{ background: #e7f1ff; color: #0d6efd; }
 .sidebar.collapsed .nav-label{ display: none; }
 .sidebar.collapsed .nav-link{ justify-content: center; }
+
+/* Chart height helpers (desktop/default) */
+.chart-320{ height: 320px; }
+.chart-380{ height: 380px; }
+.chart-460{ height: 460px; }
+.chart-480{ height: 480px; }
+
+/* XS: shrink chart heights and tighten spacing */
+@media (max-width: 575.98px){
+  .chart-320{ height: 240px; }
+  .chart-380{ height: 280px; }
+  .chart-460{ height: 300px; }
+  .chart-480{ height: 320px; }
+  .content{ padding: 12px; }
+  .card-body{ padding: .75rem; }
+  h2{ font-size: 1.25rem; }
+  .card-header{ padding: .5rem .75rem; }
+  .table{ font-size: .9rem; }
+}
+
+/* SM: mild reduction */
+@media (min-width: 576px) and (max-width: 767.98px){
+  .chart-320{ height: 260px; }
+  .chart-380{ height: 320px; }
+  .chart-460{ height: 340px; }
+  .chart-480{ height: 360px; }
+}
+
+/* Improve table wrapping for long content */
+.table td, .table th{ vertical-align: middle; }
+.table td{ word-break: break-word; }

@@ -156,7 +156,7 @@ export default function FinanceiroView({ meta, role }) {
       {loading && <div className="alert alert-info">Carregando...</div>}
 
       <Section title="Mix por status">
-        <div className="p-3" style={{height: 380}}>
+        <div className="p-3 chart-380">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip formatter={(v)=> Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} />
@@ -173,7 +173,7 @@ export default function FinanceiroView({ meta, role }) {
       </Section>
 
       <Section title="Receita por canal">
-        <div className="p-3" style={{height: 460}}>
+        <div className="p-3 chart-460">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={channelMix.map(r=>({ name: r['channel.name'], amount: Number(r['sales.total_amount'])||0, orders: Number(r['sales.orders'])||0 }))}
@@ -204,7 +204,7 @@ export default function FinanceiroView({ meta, role }) {
       </Section>
 
       <Section title="Mix por método de pagamento">
-        <div className="p-3" style={{height: 380}}>
+        <div className="p-3 chart-380">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip formatter={(v)=> Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} />

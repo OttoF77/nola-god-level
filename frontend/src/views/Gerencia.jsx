@@ -184,7 +184,7 @@ export default function GerenciaView({ meta, role }) {
       {loading && <div className="alert alert-info">Carregando...</div>}
 
       <Section title="Top 10 lojas por faturamento">
-        <div className="p-3" style={{height: 480}}>
+        <div className="p-3 chart-480">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={topStores.map(r=>({
               name: r['store.name'],
@@ -217,7 +217,7 @@ export default function GerenciaView({ meta, role }) {
       </Section>
 
       <Section title="Faturamento por canal">
-        <div className="p-3" style={{height: 380}}>
+        <div className="p-3 chart-380">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip formatter={(v)=> Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} />
@@ -237,7 +237,7 @@ export default function GerenciaView({ meta, role }) {
       </Section>
 
       <Section title="Evolução mensal (últimos 6 meses)">
-        <div className="p-3" style={{height: 320}}>
+        <div className="p-3 chart-320">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthly.map(r=>({
               month: new Date(r['time.date']).toLocaleDateString('pt-BR',{year:'2-digit', month:'2-digit'}),

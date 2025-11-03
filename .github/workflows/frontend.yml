@@ -51,6 +51,18 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: npm run build
 
+      - name: Harden CSP (remove localhost de connect-src na build)
+        if: always()
+        run: |
+          DIST_FILE=frontend/dist/index.html
+          if [ -f "$DIST_FILE" ]; then
+            echo "Antes:" && grep -n "Content-Security-Policy" "$DIST_FILE" || true
+            sed -i.bak "s# http://localhost:8000##g" "$DIST_FILE"
+            echo "Depois:" && grep -n "Content-Security-Policy" "$DIST_FILE" || true
+          else
+            echo "Arquivo $DIST_FILE não encontrado; pulando hardening de CSP."
+          fi
+
       - name: Deploy no Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:

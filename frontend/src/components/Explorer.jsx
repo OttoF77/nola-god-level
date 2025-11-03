@@ -71,7 +71,7 @@ export default function Explorer({ role }) {
       const a = document.createElement('a')
       a.href = url
       const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')
-      a.download = `explorer-${role}-${cube}-${stamp}.csv`
+      a.download = `explorer-${role}-${stamp}.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -117,7 +117,7 @@ export default function Explorer({ role }) {
           <button className="btn btn-outline-secondary btn-sm" onClick={exportCSV} disabled={!result.rows.length}>Exportar CSV</button>
         </div>
         <div className="table-responsive">
-          <table className="table table-sm table-hover">
+          <table className="table table-sm table-hover align-middle">
             <thead className="table-light">
               <tr>
                 {columns.map(c => {
@@ -159,7 +159,7 @@ export default function Explorer({ role }) {
                       displayValue = String(value)
                     }
                     return (
-                      <td key={c} className={isNumber ? 'text-end' : ''}>
+                      <td key={c} className={(isNumber ? 'text-end ' : '') + 'text-break'}>
                         {displayValue}
                       </td>
                     )

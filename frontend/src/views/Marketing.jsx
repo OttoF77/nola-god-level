@@ -223,7 +223,7 @@ export default function MarketingView({ meta, role }) {
 
       <div className="card mb-4">
         <div className="card-header fw-semibold">Faturamento diário por canal</div>
-        <div className="p-3" style={{height: 320}}>
+        <div className="p-3 chart-320">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={lineData} margin={{ top: 10, right: 20, left: 60, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -247,7 +247,7 @@ export default function MarketingView({ meta, role }) {
 
       <div className="card mb-4">
         <div className="card-header fw-semibold">Top 10 produtos por receita</div>
-        <div className="p-3" style={{height: 480}}>
+        <div className="p-3 chart-480">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={productBars} margin={{ top: 10, right: 20, left: 60, bottom: 130 }}>
               <CartesianGrid strokeDasharray="3 3" />

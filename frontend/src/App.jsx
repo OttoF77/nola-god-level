@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import Sidebar from '@/components/Sidebar.jsx'
-import MarketingView from '@/views/Marketing.jsx'
-import GerenciaView from '@/views/Gerencia.jsx'
-import FinanceiroView from '@/views/Financeiro.jsx'
+const MarketingView = React.lazy(() => import('@/views/Marketing.jsx'))
+const GerenciaView = React.lazy(() => import('@/views/Gerencia.jsx'))
+const FinanceiroView = React.lazy(() => import('@/views/Financeiro.jsx'))
 import { getMetadata } from '@/api.js'
 
 export default function App() {
@@ -29,18 +29,29 @@ export default function App() {
   return (
     <div className="app-shell">
       <Sidebar
-        open={true}
-        onToggle={() => {}}
+        open={sidebarOpen}
+        onToggle={(next) => setSidebarOpen(prev => typeof next === 'boolean' ? next : !prev)}
         role={role}
         onChangeRole={setRole}
         meta={meta}
       />
 
-  {/* Backdrop removido pois o menu não é mais colapsável */}
+      {/* Backdrop para mobile: aparece quando o menu está aberto */}
+      {sidebarOpen && (
+        <div className="backdrop d-lg-none" onClick={() => setSidebarOpen(false)} aria-label="Fechar menu"></div>
+      )}
 
-      <main className={`content`}>
-        {/* Topbar mobile sem botão sanduíche */}
+      <main className={`content ${sidebarOpen ? '' : 'collapsed'}`}>
+        {/* Topbar mobile com botão sanduíche */}
         <div className="topbar d-lg-none border-bottom px-2 py-2 d-flex align-items-center gap-2 mb-2">
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            type="button"
+            aria-label="Alternar menu"
+            onClick={() => setSidebarOpen(o => !o)}
+          >
+            <i className="bi bi-list" aria-hidden="true"></i>
+          </button>
           <div className="fw-semibold">Nola Analytics</div>
         </div>
 
@@ -48,9 +59,11 @@ export default function App() {
           {error && <div className="alert alert-danger">{error}</div>}
           {!meta && !error && <div className="alert alert-info">Carregando metadados...</div>}
 
-          {role === 'marketing' && <MarketingView meta={meta} role={role} />}
-          {role === 'gerencia' && <GerenciaView meta={meta} role={role} />}
-          {role === 'financeiro' && <FinanceiroView meta={meta} role={role} />}
+          <Suspense fallback={<div className="alert alert-info">Carregando tela…</div>}>
+            {role === 'marketing' && <MarketingView meta={meta} role={role} />}
+            {role === 'gerencia' && <GerenciaView meta={meta} role={role} />}
+            {role === 'financeiro' && <FinanceiroView meta={meta} role={role} />}
+          </Suspense>
 
           <footer className="mt-4 border-top py-3">
             <div className="text-muted small">© {new Date().getFullYear()} Nola • Demo</div>
