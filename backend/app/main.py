@@ -35,7 +35,8 @@ app.add_middleware(
 )
 
 # Redireciona para HTTPS quando suportado pelo ambiente (no Azure, TLS é padrão)
-app.add_middleware(HTTPSRedirectMiddleware)
+# NOTA: Desabilitado para Azure Container Apps - o ingress já faz HTTPS automaticamente
+# app.add_middleware(HTTPSRedirectMiddleware)
 
 
 @app.middleware("http")
