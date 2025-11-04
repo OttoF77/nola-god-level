@@ -58,32 +58,45 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Validar secrets de ACR
+      - name: Validar secrets do Docker Hub
         run: |
-          if [ -z "${{ secrets.ACR_NAME }}" ] || [ -z "${{ secrets.ACR_LOGIN_SERVER }}" ]; then
-            echo "Erro: Secrets de ACR faltando. Configure ACR_NAME e ACR_LOGIN_SERVER."
-            echo "Ex.: ACR_NAME=nolaacr, ACR_LOGIN_SERVER=nolaacr.azurecr.io"
+          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ] || [ -z "${{ secrets.DOCKERHUB_REPOSITORY }}" ]; then
+            echo "Erro: Configure DOCKERHUB_USERNAME, DOCKERHUB_TOKEN e DOCKERHUB_REPOSITORY (ex.: usuario/nola-backend)."
             exit 1
           fi
 
-      - name: Login no ACR
-        run: |
-          az acr login --name ${{ secrets.ACR_NAME }}
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build e Push da imagem Docker
+      - name: Build e Push da imagem Docker (Docker Hub)
         run: |
-          IMAGE_TAG=${{ env.PROJECT_NAME }}-backend:${{ github.sha }}
-          IMAGE_LATEST=${{ env.PROJECT_NAME }}-backend:latest
-          
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG ./backend
-          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_LATEST
-          
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_LATEST
-          
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          IMAGE_REPO=docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}
+          IMAGE_TAG=${IMAGE_REPO}:${{ github.sha }}
+          IMAGE_LATEST=${IMAGE_REPO}:latest
 
-      - name: Deploy no Container Apps
+          docker build -t ${IMAGE_TAG} ./backend
+          docker tag ${IMAGE_TAG} ${IMAGE_LATEST}
+
+          docker push ${IMAGE_TAG}
+          docker push ${IMAGE_LATEST}
+
+          echo "IMAGE_FULL=${IMAGE_TAG}" >> $GITHUB_ENV
+
+      - name: (Opcional) Configurar credenciais do registry no Container App
+        run: |
+          ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
+          APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
+          az containerapp registry set \
+            --name $APP_NAME \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --server docker.io \
+            --username ${{ secrets.DOCKERHUB_USERNAME }} \
+            --password ${{ secrets.DOCKERHUB_TOKEN }} || true
+
+      - name: Deploy no Container Apps (atualizar imagem)
         run: |
           ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
           APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
@@ -91,7 +104,7 @@ jobs:
           az containerapp update \
             --name $APP_NAME \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_TAG }} \
+            --image ${{ env.IMAGE_FULL }} \
             --set-env-vars \
               DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               ALLOW_ORIGINS="${{ secrets.ALLOW_ORIGINS }}" \
