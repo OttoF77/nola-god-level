@@ -90,6 +90,16 @@ jobs:
         run: |
           echo "IMAGE_FULL=${{ secrets.DOCKER_IMAGE_REF }}" >> $GITHUB_ENV
 
+      - name: Definir imagem via arquivo backend/.image_ref (fallback por repo file)
+        if: ${{ github.event.inputs.image_ref == '' && secrets.DOCKER_IMAGE_REF == '' }}
+        run: |
+          if [ -f backend/.image_ref ]; then
+            REF=$(cat backend/.image_ref | tr -d '\n' | tr -d '\r')
+            if [ -n "$REF" ]; then
+              echo "IMAGE_FULL=$REF" >> $GITHUB_ENV
+            fi
+          fi
+
       - name: Validar secrets do Docker Hub
         if: ${{ github.event.inputs.image_ref == '' && secrets.DOCKER_IMAGE_REF == '' }}
         run: |
@@ -136,15 +146,37 @@ jobs:
         run: |
           ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
           APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
-          
-          az containerapp update \
-            --name $APP_NAME \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE_FULL }} \
-            --set-env-vars \
-              DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-              ALLOW_ORIGINS="${{ secrets.ALLOW_ORIGINS }}" \
-              STATEMENT_TIMEOUT="15s"
+
+          # Monta pares de env vars somente quando definidos nos secrets (evita sobrescrever com vazio)
+          ENV_VARS=""
+          if [ -n "${{ secrets.DATABASE_URL }}" ]; then
+            ENV_VARS="${ENV_VARS}DATABASE_URL='${{ secrets.DATABASE_URL }}',"
+          fi
+          if [ -n "${{ secrets.ALLOW_ORIGINS }}" ]; then
+            ENV_VARS="${ENV_VARS}ALLOW_ORIGINS='${{ secrets.ALLOW_ORIGINS }}',"
+          fi
+          if [ -n "${{ secrets.STATEMENT_TIMEOUT }}" ]; then
+            ENV_VARS="${ENV_VARS}STATEMENT_TIMEOUT='${{ secrets.STATEMENT_TIMEOUT }}',"
+          fi
+          # default para STATEMENT_TIMEOUT se nenhum secret informado
+          if [ -z "${{ secrets.STATEMENT_TIMEOUT }}" ]; then
+            ENV_VARS="${ENV_VARS}STATEMENT_TIMEOUT='15s',"
+          fi
+          # Remove vírgula final
+          ENV_VARS=${ENV_VARS%,}
+
+          if [ -n "$ENV_VARS" ]; then
+            az containerapp update \
+              --name $APP_NAME \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image ${{ env.IMAGE_FULL }} \
+              --set-env-vars $ENV_VARS
+          else
+            az containerapp update \
+              --name $APP_NAME \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image ${{ env.IMAGE_FULL }}
+          fi
 
       - name: Verificar health
         run: |
