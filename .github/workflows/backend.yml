@@ -1,5 +1,5 @@
 # GitHub Actions: Build e Deploy Backend (Container Apps)
-# Trigger: push em backend/ ou manual
+# Aciona em push de backend/ ou via dispatch manual
 
 name: Backend Deploy
 
