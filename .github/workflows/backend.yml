@@ -29,6 +29,10 @@ env:
   AZURE_RESOURCE_GROUP: nola-rg
   PROJECT_NAME: nola
 
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   id-token: write
   contents: read
@@ -172,6 +176,29 @@ jobs:
             --username ${{ secrets.DOCKERHUB_USERNAME }} \
             --password ${{ secrets.DOCKERHUB_TOKEN }} || true
 
+      - name: Aguardar Container App livre de operações pendentes
+        run: |
+          ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
+          APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
+          RG=${{ env.AZURE_RESOURCE_GROUP }}
+          echo "Aguardando Container App $APP_NAME ficar com provisioningState=Succeeded..."
+          ATTEMPTS=0
+          until [ $ATTEMPTS -ge 60 ]
+          do
+            STATE=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query properties.provisioningState -o tsv || echo "unknown")
+            echo "Estado atual: $STATE"
+            if [ "$STATE" = "Succeeded" ] || [ "$STATE" = "ProvisionedSuccessfully" ]; then
+              echo "OK: estado estável."
+              break
+            fi
+            ATTEMPTS=$((ATTEMPTS+1))
+            sleep 10
+          done
+          if [ $ATTEMPTS -ge 60 ]; then
+            echo "Timeout aguardando operação anterior terminar."
+            exit 1
+          fi
+
       - name: Deploy no Container Apps (atualizar imagem)
         run: |
           ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
@@ -197,12 +224,27 @@ jobs:
             ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT='15s'"
           fi
 
-          # shellcheck disable=SC2086
-          az containerapp update \
-            --name $APP_NAME \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE_FULL }} \
-            $ENV_ARGS
+          # Tenta atualizar com retry se houver operação em progresso
+          RG=${{ env.AZURE_RESOURCE_GROUP }}
+          for i in $(seq 1 12); do
+            echo "Atualização tentativa $i..."
+            # shellcheck disable=SC2086
+            if az containerapp update \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --image "${IMAGE_FULL}" \
+              $ENV_ARGS; then
+              echo "Update bem-sucedido."
+              break
+            else
+              echo "Falha na atualização (talvez operação em progresso). Aguardando e tentando novamente..."
+              sleep 15
+            fi
+            if [ "$i" = "12" ]; then
+              echo "Erro: não foi possível atualizar após múltiplas tentativas."
+              exit 1
+            fi
+          done
 
       - name: Verificar health
         run: |
