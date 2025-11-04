@@ -34,10 +34,37 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Login no Azure
+      - name: Validar secrets de autenticação Azure
+        run: |
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ] && { [ -z "${{ secrets.AZURE_CLIENT_ID }}" ] || [ -z "${{ secrets.AZURE_TENANT_ID }}" ] || [ -z "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ]; }; then
+            echo "Erro: Configure o login no Azure.\n"
+            echo "Opção 1 (Service Principal JSON):\n  - Adicione o secret AZURE_CREDENTIALS com o JSON contendo clientId, clientSecret, subscriptionId, tenantId.\n"
+            echo "Opção 2 (OIDC sem segredo):\n  - Adicione os secrets AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID e crie credencial federada no Entra ID para este repositório.\n"
+            echo "Docs: https://github.com/Azure/login"
+            exit 1
+          fi
+
+      - name: Login no Azure (Service Principal JSON)
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login no Azure (OIDC federated)
+        if: ${{ secrets.AZURE_CREDENTIALS == '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' }}
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validar secrets de ACR
+        run: |
+          if [ -z "${{ secrets.ACR_NAME }}" ] || [ -z "${{ secrets.ACR_LOGIN_SERVER }}" ]; then
+            echo "Erro: Secrets de ACR faltando. Configure ACR_NAME e ACR_LOGIN_SERVER."
+            echo "Ex.: ACR_NAME=nolaacr, ACR_LOGIN_SERVER=nolaacr.azurecr.io"
+            exit 1
+          fi
 
       - name: Login no ACR
         run: |
