@@ -100,8 +100,19 @@ jobs:
             fi
           fi
 
+      - name: Resolver imagem definida
+        id: resolve_image
+        run: |
+          if [ -n "${IMAGE_FULL}" ]; then
+            echo "has_image=true" >> $GITHUB_OUTPUT
+            echo "Usando imagem pré-definida: ${IMAGE_FULL}"
+          else
+            echo "has_image=false" >> $GITHUB_OUTPUT
+            echo "Nenhuma imagem pré-definida encontrada; irá tentar build/push."
+          fi
+
       - name: Validar secrets do Docker Hub
-        if: ${{ github.event.inputs.image_ref == '' && secrets.DOCKER_IMAGE_REF == '' }}
+        if: ${{ steps.resolve_image.outputs.has_image == 'false' }}
         run: |
           if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ] || [ -z "${{ secrets.DOCKERHUB_REPOSITORY }}" ]; then
             echo "Erro: Configure DOCKERHUB_USERNAME, DOCKERHUB_TOKEN e DOCKERHUB_REPOSITORY (ex.: usuario/nola-backend)."
@@ -109,14 +120,14 @@ jobs:
           fi
 
       - name: Login no Docker Hub
-        if: ${{ github.event.inputs.image_ref == '' && secrets.DOCKER_IMAGE_REF == '' }}
+        if: ${{ steps.resolve_image.outputs.has_image == 'false' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build e Push da imagem Docker (Docker Hub)
-        if: ${{ github.event.inputs.image_ref == '' && secrets.DOCKER_IMAGE_REF == '' }}
+        if: ${{ steps.resolve_image.outputs.has_image == 'false' }}
         run: |
           IMAGE_REPO=docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}
           IMAGE_TAG=${IMAGE_REPO}:${{ github.sha }}
@@ -131,7 +142,7 @@ jobs:
           echo "IMAGE_FULL=${IMAGE_TAG}" >> $GITHUB_ENV
 
       - name: (Opcional) Configurar credenciais do registry no Container App
-        if: ${{ github.event.inputs.image_ref == '' && secrets.DOCKER_IMAGE_REF == '' }}
+        if: ${{ steps.resolve_image.outputs.has_image == 'false' }}
         run: |
           ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
           APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
@@ -146,6 +157,11 @@ jobs:
         run: |
           ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
           APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
+
+          if [ -z "${IMAGE_FULL}" ]; then
+            echo "Erro: IMAGE_FULL não definido. Defina 'image_ref' no dispatch, 'DOCKER_IMAGE_REF' como secret, arquivo backend/.image_ref, ou habilite build/push do Docker Hub."
+            exit 1
+          fi
 
           # Monta pares de env vars somente quando definidos nos secrets (evita sobrescrever com vazio)
           ENV_VARS=""
