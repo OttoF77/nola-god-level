@@ -69,6 +69,16 @@ jobs:
           if [ -f "$DIST_FILE" ]; then
             echo "Antes:" && grep -n "Content-Security-Policy" "$DIST_FILE" || true
             sed -i.bak "s# http://localhost:8000##g" "$DIST_FILE"
+            # Se VITE_API_BASE_URL estiver definido, injeta a origem no connect-src
+            if [ -n "${{ secrets.VITE_API_BASE_URL }}" ]; then
+              ORIGIN=$(echo "${{ secrets.VITE_API_BASE_URL }}" | sed -E 's#^([A-Za-z][A-Za-z0-9+.-]*://[^/]+).*$#\1#')
+              if [ -n "$ORIGIN" ]; then
+                # adiciona $ORIGIN se não existir ainda
+                if ! grep -q "$ORIGIN" "$DIST_FILE"; then
+                  sed -i.bak "s#connect-src 'self'#connect-src 'self' $ORIGIN#g" "$DIST_FILE"
+                fi
+              fi
+            fi
             echo "Depois:" && grep -n "Content-Security-Policy" "$DIST_FILE" || true
           else
             echo "Arquivo $DIST_FILE não encontrado; pulando hardening de CSP."

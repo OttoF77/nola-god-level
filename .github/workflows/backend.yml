@@ -44,23 +44,37 @@ jobs:
 
       - name: Validar secrets de autenticação Azure
         run: |
-          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ] && { [ -z "${{ secrets.AZURE_CLIENT_ID }}" ] || [ -z "${{ secrets.AZURE_TENANT_ID }}" ] || [ -z "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ]; }; then
-            echo "Erro: Configure o login no Azure.\n"
-            echo "Opção 1 (Service Principal JSON):\n  - Adicione o secret AZURE_CREDENTIALS com o JSON contendo clientId, clientSecret, subscriptionId, tenantId.\n"
-            echo "Opção 2 (OIDC sem segredo):\n  - Adicione os secrets AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID e crie credencial federada no Entra ID para este repositório.\n"
+          # Aceita OIDC com prefixo NOLADEVBACKEND_ (gerado pelo Portal) ou genérico
+          HAS_OIDC_PORTAL=${{ secrets.NOLADEVBACKEND_AZURE_CLIENT_ID != '' && secrets.NOLADEVBACKEND_AZURE_TENANT_ID != '' && secrets.NOLADEVBACKEND_AZURE_SUBSCRIPTION_ID != '' }}
+          HAS_OIDC_GENERIC=${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' }}
+          HAS_SP_JSON=${{ secrets.AZURE_CREDENTIALS != '' }}
+          
+          if [ "$HAS_SP_JSON" != "true" ] && [ "$HAS_OIDC_PORTAL" != "true" ] && [ "$HAS_OIDC_GENERIC" != "true" ]; then
+            echo "Erro: Configure o login no Azure."
+            echo "Opção 1 (Service Principal JSON): AZURE_CREDENTIALS"
+            echo "Opção 2 (OIDC genérico): AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID"
+            echo "Opção 3 (OIDC do Portal): NOLADEVBACKEND_AZURE_CLIENT_ID, NOLADEVBACKEND_AZURE_TENANT_ID, NOLADEVBACKEND_AZURE_SUBSCRIPTION_ID"
             echo "Docs: https://github.com/Azure/login"
             exit 1
           fi
 
       - name: Login no Azure (Service Principal JSON)
         if: ${{ secrets.AZURE_CREDENTIALS != '' }}
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Login no Azure (OIDC federated)
-        if: ${{ secrets.AZURE_CREDENTIALS == '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' }}
-        uses: azure/login@v1
+      - name: Login no Azure (OIDC do Portal)
+        if: ${{ secrets.AZURE_CREDENTIALS == '' && secrets.NOLADEVBACKEND_AZURE_CLIENT_ID != '' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.NOLADEVBACKEND_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.NOLADEVBACKEND_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.NOLADEVBACKEND_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login no Azure (OIDC genérico)
+        if: ${{ secrets.AZURE_CREDENTIALS == '' && secrets.NOLADEVBACKEND_AZURE_CLIENT_ID == '' && secrets.AZURE_CLIENT_ID != '' }}
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
