@@ -249,17 +249,27 @@ export default function MarketingView({ meta, role }) {
         <div className="card-header fw-semibold">Top 10 produtos por receita</div>
         <div className="p-3 chart-480">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={productBars} margin={{ top: 10, right: 20, left: 60, bottom: 130 }}>
+            <BarChart 
+              data={productBars} 
+              margin={{ 
+                top: 10, 
+                right: window.innerWidth < 576 ? 5 : 20, 
+                left: window.innerWidth < 576 ? 10 : 60, 
+                bottom: window.innerWidth < 576 ? 80 : 130 
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="name" 
-                angle={-45} 
+                angle={window.innerWidth < 576 ? -60 : -45} 
                 textAnchor="end" 
                 interval={0} 
-                height={80}
-                style={{fontSize: 11}}
+                height={window.innerWidth < 576 ? 60 : 80}
+                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
               />
               <YAxis 
+                width={window.innerWidth < 576 ? 40 : 60}
+                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
                 tickFormatter={(v) => {
                   if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
                   if (v >= 1000) return `${(v/1000).toFixed(0)}k`
@@ -267,7 +277,7 @@ export default function MarketingView({ meta, role }) {
                 }}
               />
               <Tooltip formatter={(v, n)=> n==='revenue' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
-              <Legend wrapperStyle={{ paddingTop: '40px' }} />
+              <Legend wrapperStyle={{ paddingTop: window.innerWidth < 576 ? '20px' : '40px', fontSize: window.innerWidth < 576 ? '11px' : '14px' }} />
               <Bar dataKey="revenue" name="Receita" fill="#2563eb" />
               <Bar dataKey="quantity" name="Qtde" fill="#16a34a" />
             </BarChart>
