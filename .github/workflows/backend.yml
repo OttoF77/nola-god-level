@@ -200,6 +200,10 @@ jobs:
           fi
 
       - name: Deploy no Container Apps (atualizar imagem)
+        env:
+          DB_URL: ${{ secrets.DATABASE_URL }}
+          CORS_ORIGINS: ${{ secrets.ALLOW_ORIGINS }}
+          STMT_TIMEOUT: ${{ secrets.STATEMENT_TIMEOUT }}
         run: |
           ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
           APP_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-backend
@@ -210,18 +214,18 @@ jobs:
           fi
 
           # Monta pares de env vars somente quando definidos nos secrets (evita sobrescrever com vazio)
-          # Importante: use espaço entre pares (não vírgula) para o az CLI
+          # Usa variáveis de ambiente para evitar problemas com caracteres especiais
           ENV_ARGS=""
-          if [ -n "${{ secrets.DATABASE_URL }}" ]; then
-            ENV_ARGS="$ENV_ARGS --set-env-vars DATABASE_URL='${{ secrets.DATABASE_URL }}'"
+          if [ -n "$DB_URL" ]; then
+            ENV_ARGS="$ENV_ARGS --set-env-vars DATABASE_URL=$DB_URL"
           fi
-          if [ -n "${{ secrets.ALLOW_ORIGINS }}" ]; then
-            ENV_ARGS="$ENV_ARGS --set-env-vars ALLOW_ORIGINS='${{ secrets.ALLOW_ORIGINS }}'"
+          if [ -n "$CORS_ORIGINS" ]; then
+            ENV_ARGS="$ENV_ARGS --set-env-vars ALLOW_ORIGINS=$CORS_ORIGINS"
           fi
-          if [ -n "${{ secrets.STATEMENT_TIMEOUT }}" ]; then
-            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT='${{ secrets.STATEMENT_TIMEOUT }}'"
+          if [ -n "$STMT_TIMEOUT" ]; then
+            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT=$STMT_TIMEOUT"
           else
-            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT='15s'"
+            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT=15s"
           fi
 
           # Tenta atualizar com retry se houver operação em progresso
