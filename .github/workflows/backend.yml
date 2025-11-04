@@ -29,6 +29,10 @@ env:
   AZURE_RESOURCE_GROUP: nola-rg
   PROJECT_NAME: nola
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
