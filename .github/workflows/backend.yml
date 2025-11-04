@@ -213,49 +213,55 @@ jobs:
             exit 1
           fi
 
-          # Debug: verificar comprimento e primeiros caracteres do DATABASE_URL (ofuscado)
+          # Construir comando az containerapp update passo a passo
+          # Começar com comando base
+          CMD="az containerapp update --name \"$APP_NAME\" --resource-group \"${{ env.AZURE_RESOURCE_GROUP }}\" --image \"${IMAGE_FULL}\""
+          
+          # Adicionar env vars individualmente
           if [ -n "$DB_URL" ]; then
-            echo "DATABASE_URL length: ${#DB_URL}"
-            echo "DATABASE_URL prefix: ${DB_URL:0:15}..."
-            echo "DATABASE_URL suffix: ...${DB_URL: -15}"
+            echo "✓ Configurando DATABASE_URL (${#DB_URL} caracteres)"
+            CMD="$CMD --set-env-vars \"DATABASE_URL=$DB_URL\""
           fi
-
-          # Monta pares de env vars somente quando definidos nos secrets
-          # Usa múltiplos --set-env-vars separados (sintaxe correta do Azure CLI)
-          ENV_VARS=""
-          if [ -n "$DB_URL" ]; then
-            ENV_VARS="$ENV_VARS --set-env-vars DATABASE_URL=\"$DB_URL\""
-          fi
+          
           if [ -n "$CORS_ORIGINS" ]; then
-            ENV_VARS="$ENV_VARS --set-env-vars ALLOW_ORIGINS=\"$CORS_ORIGINS\""
+            echo "✓ Configurando ALLOW_ORIGINS"
+            CMD="$CMD --set-env-vars \"ALLOW_ORIGINS=$CORS_ORIGINS\""
           fi
+          
           if [ -n "$STMT_TIMEOUT" ]; then
-            ENV_VARS="$ENV_VARS --set-env-vars STATEMENT_TIMEOUT=\"$STMT_TIMEOUT\""
+            echo "✓ Configurando STATEMENT_TIMEOUT=$STMT_TIMEOUT"
+            CMD="$CMD --set-env-vars \"STATEMENT_TIMEOUT=$STMT_TIMEOUT\""
           else
-            ENV_VARS="$ENV_VARS --set-env-vars STATEMENT_TIMEOUT=15s"
+            echo "✓ Configurando STATEMENT_TIMEOUT=15s (default)"
+            CMD="$CMD --set-env-vars \"STATEMENT_TIMEOUT=15s\""
           fi
 
-          # Tenta atualizar com retry se houver operação em progresso
-          RG=${{ env.AZURE_RESOURCE_GROUP }}
+          # Executar update com retry
+          echo "Comando construído. Executando update..."
           for i in $(seq 1 12); do
-            echo "Atualização tentativa $i..."
-            # shellcheck disable=SC2086
-            if eval "az containerapp update \
-              --name \"$APP_NAME\" \
-              --resource-group \"$RG\" \
-              --image \"${IMAGE_FULL}\" \
-              $ENV_VARS"; then
-              echo "Update bem-sucedido."
+            echo "Atualização tentativa $i/12..."
+            if eval "$CMD"; then
+              echo "✓ Update bem-sucedido!"
+              
+              # Aguardar e verificar nova revisão
+              sleep 10
+              NEW_REV=$(az containerapp show --name "$APP_NAME" --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+                --query 'properties.latestRevisionName' -o tsv 2>/dev/null)
+              echo "Nova revisão: $NEW_REV"
               break
             else
-              echo "Falha na atualização (talvez operação em progresso). Aguardando e tentando novamente..."
-              sleep 15
-            fi
-            if [ "$i" = "12" ]; then
-              echo "Erro: não foi possível atualizar após múltiplas tentativas."
-              exit 1
+              echo "✗ Falha na atualização (tentativa $i/12)"
+              if [ "$i" -lt 12 ]; then
+                echo "Aguardando 15s antes de tentar novamente..."
+                sleep 15
+              fi
             fi
           done
+          
+          if [ "$i" = "12" ]; then
+            echo "✗ Erro: não foi possível atualizar após 12 tentativas."
+            exit 1
+          fi
 
       - name: Verificar health
         run: |
