@@ -213,31 +213,38 @@ jobs:
             exit 1
           fi
 
-          # Monta pares de env vars somente quando definidos nos secrets (evita sobrescrever com vazio)
-          # Usa variáveis de ambiente para evitar problemas com caracteres especiais
-          # IMPORTANTE: cada --set-env-vars deve ter apenas um par chave=valor
-          ENV_VARS=()
+          # Debug: verificar comprimento e primeiros caracteres do DATABASE_URL (ofuscado)
           if [ -n "$DB_URL" ]; then
-            ENV_VARS+=("--set-env-vars" "DATABASE_URL=$DB_URL")
+            echo "DATABASE_URL length: ${#DB_URL}"
+            echo "DATABASE_URL prefix: ${DB_URL:0:15}..."
+            echo "DATABASE_URL suffix: ...${DB_URL: -15}"
+          fi
+
+          # Monta pares de env vars somente quando definidos nos secrets
+          # Usa múltiplos --set-env-vars separados (sintaxe correta do Azure CLI)
+          ENV_VARS=""
+          if [ -n "$DB_URL" ]; then
+            ENV_VARS="$ENV_VARS --set-env-vars DATABASE_URL=\"$DB_URL\""
           fi
           if [ -n "$CORS_ORIGINS" ]; then
-            ENV_VARS+=("--set-env-vars" "ALLOW_ORIGINS=$CORS_ORIGINS")
+            ENV_VARS="$ENV_VARS --set-env-vars ALLOW_ORIGINS=\"$CORS_ORIGINS\""
           fi
           if [ -n "$STMT_TIMEOUT" ]; then
-            ENV_VARS+=("--set-env-vars" "STATEMENT_TIMEOUT=$STMT_TIMEOUT")
+            ENV_VARS="$ENV_VARS --set-env-vars STATEMENT_TIMEOUT=\"$STMT_TIMEOUT\""
           else
-            ENV_VARS+=("--set-env-vars" "STATEMENT_TIMEOUT=15s")
+            ENV_VARS="$ENV_VARS --set-env-vars STATEMENT_TIMEOUT=15s"
           fi
 
           # Tenta atualizar com retry se houver operação em progresso
           RG=${{ env.AZURE_RESOURCE_GROUP }}
           for i in $(seq 1 12); do
             echo "Atualização tentativa $i..."
-            if az containerapp update \
-              --name "$APP_NAME" \
-              --resource-group "$RG" \
-              --image "${IMAGE_FULL}" \
-              "${ENV_VARS[@]}"; then
+            # shellcheck disable=SC2086
+            if eval "az containerapp update \
+              --name \"$APP_NAME\" \
+              --resource-group \"$RG\" \
+              --image \"${IMAGE_FULL}\" \
+              $ENV_VARS"; then
               echo "Update bem-sucedido."
               break
             else
