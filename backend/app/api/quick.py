@@ -5,7 +5,7 @@ Rotas utilitárias/rápidas para facilitar validação e demos.
     status COMPLETED.
 - Útil para health-check funcional e para validar a conexão com o banco.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from datetime import date
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -66,3 +66,23 @@ def quick_overview():
         "pedidos": int(row["orders"] or 0),
         "ticket_medio": float(row["ticket_medio"] or 0),
     }
+
+
+@router.get("/health/db")
+def health_db():
+    """Verifica conexão com o banco e retorna informações básicas.
+
+    Em caso de erro, retorna 500 com a mensagem da exceção (útil
+    para debug em produção).
+    """
+    try:
+        with _conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT version() AS version, current_database() AS db"
+                )
+                info = cur.fetchone() or {}
+        return {"ok": True, **info}
+    except Exception as e:
+        # Propaga a mensagem do erro para facilitar diagnóstico (temporário)
+        raise HTTPException(status_code=500, detail=f"DB error: {e}")
