@@ -49,41 +49,47 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Resolver API base URL
+      - name: Resolver e aplicar API base URL
         id: resolve_api
         env:
           INPUT_API_BASE_URL: ${{ github.event.inputs.api_base_url }}
           SECRET_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: |
+          # Resolver a URL da API (dispatch > secret > arquivo)
+          API_URL=""
+          
           if [ -n "$INPUT_API_BASE_URL" ]; then
-            echo "CHOSEN_API_BASE=$INPUT_API_BASE_URL" >> $GITHUB_ENV
-            echo "api_chosen=true" >> $GITHUB_OUTPUT
-            echo "Usando api_base_url do dispatch: $INPUT_API_BASE_URL"
-            exit 0
-          fi
-          if [ -n "$SECRET_API_BASE_URL" ]; then
-            echo "CHOSEN_API_BASE=$SECRET_API_BASE_URL" >> $GITHUB_ENV
-            echo "api_chosen=true" >> $GITHUB_OUTPUT
-            echo "Usando VITE_API_BASE_URL de secret"
-            exit 0
-          fi
-          if [ -f frontend/.api_base_url ]; then
-            REF=$(cat frontend/.api_base_url | tr -d '\n' | tr -d '\r')
-            if [ -n "$REF" ]; then
-              echo "CHOSEN_API_BASE=$REF" >> $GITHUB_ENV
-              echo "api_chosen=true" >> $GITHUB_OUTPUT
-              echo "Usando frontend/.api_base_url: $REF"
-              exit 0
+            API_URL="$INPUT_API_BASE_URL"
+            echo "✓ Usando api_base_url do dispatch: $API_URL"
+          elif [ -n "$SECRET_API_BASE_URL" ]; then
+            API_URL="$SECRET_API_BASE_URL"
+            echo "✓ Usando VITE_API_BASE_URL de secret: $API_URL"
+          elif [ -f frontend/.api_base_url ]; then
+            API_URL=$(cat frontend/.api_base_url | tr -d '\n' | tr -d '\r' | tr -d ' ')
+            if [ -n "$API_URL" ]; then
+              echo "✓ Usando frontend/.api_base_url: $API_URL"
             fi
           fi
-          echo "api_chosen=false" >> $GITHUB_OUTPUT
-          echo "Nenhuma API base URL fornecida; a build pode usar http://localhost:8000 e falhar em produção por CSP."
+          
+          if [ -z "$API_URL" ]; then
+            echo "⚠ AVISO: Nenhuma API base URL fornecida!"
+            echo "⚠ O frontend vai usar http://localhost:8000 (padrão) e pode falhar em produção."
+            echo "api_url=" >> $GITHUB_OUTPUT
+            echo "api_chosen=false" >> $GITHUB_OUTPUT
+          else
+            echo "API_URL=$API_URL" >> $GITHUB_ENV
+            echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+            echo "api_chosen=true" >> $GITHUB_OUTPUT
+            echo "✓ VITE_API_BASE_URL será: $API_URL"
+          fi
 
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: ${{ env.CHOSEN_API_BASE }}
-        run: npm run build
+          VITE_API_BASE_URL: ${{ env.API_URL }}
+        run: |
+          echo "Building com VITE_API_BASE_URL=$VITE_API_BASE_URL"
+          npm run build
 
       - name: Validar secrets necessários
         run: |
