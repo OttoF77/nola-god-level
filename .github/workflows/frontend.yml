@@ -15,6 +15,10 @@ on:
           - dev
           - staging
           - prod
+      api_base_url:
+        description: 'API base URL para a build (ex.: https://<backend-fqdn>)'
+        required: false
+        type: string
   push:
     branches:
       - main
@@ -45,10 +49,40 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Resolver API base URL
+        id: resolve_api
+        env:
+          INPUT_API_BASE_URL: ${{ github.event.inputs.api_base_url }}
+          SECRET_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: |
+          if [ -n "$INPUT_API_BASE_URL" ]; then
+            echo "CHOSEN_API_BASE=$INPUT_API_BASE_URL" >> $GITHUB_ENV
+            echo "api_chosen=true" >> $GITHUB_OUTPUT
+            echo "Usando api_base_url do dispatch: $INPUT_API_BASE_URL"
+            exit 0
+          fi
+          if [ -n "$SECRET_API_BASE_URL" ]; then
+            echo "CHOSEN_API_BASE=$SECRET_API_BASE_URL" >> $GITHUB_ENV
+            echo "api_chosen=true" >> $GITHUB_OUTPUT
+            echo "Usando VITE_API_BASE_URL de secret"
+            exit 0
+          fi
+          if [ -f frontend/.api_base_url ]; then
+            REF=$(cat frontend/.api_base_url | tr -d '\n' | tr -d '\r')
+            if [ -n "$REF" ]; then
+              echo "CHOSEN_API_BASE=$REF" >> $GITHUB_ENV
+              echo "api_chosen=true" >> $GITHUB_OUTPUT
+              echo "Usando frontend/.api_base_url: $REF"
+              exit 0
+            fi
+          fi
+          echo "api_chosen=false" >> $GITHUB_OUTPUT
+          echo "Nenhuma API base URL fornecida; a build pode usar http://localhost:8000 e falhar em produção por CSP."
+
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ env.CHOSEN_API_BASE }}
         run: npm run build
 
       - name: Validar secrets necessários
@@ -58,20 +92,20 @@ jobs:
             echo "Acesse Azure Static Web Apps > Deployment tokens e adicione o token em Settings > Secrets and variables > Actions."
             exit 1
           fi
-          if [ -z "${{ secrets.VITE_API_BASE_URL }}" ]; then
-            echo "Aviso: Secret VITE_API_BASE_URL não está definido. O frontend usará http://localhost:8000 por padrão, que pode ser bloqueado pela CSP."
+          if [ "${{ steps.resolve_api.outputs.api_chosen }}" != "true" ]; then
+            echo "Aviso: Nenhum VITE_API_BASE_URL fornecido (dispatch/secret/arquivo). O frontend pode referenciar http://localhost:8000 e ser bloqueado pela CSP."
           fi
 
-      - name: Harden CSP (remove localhost de connect-src na build)
+      - name: Harden CSP (alinha connect-src com a API)
         if: always()
         run: |
           DIST_FILE=frontend/dist/index.html
           if [ -f "$DIST_FILE" ]; then
             echo "Antes:" && grep -n "Content-Security-Policy" "$DIST_FILE" || true
             sed -i.bak "s# http://localhost:8000##g" "$DIST_FILE"
-            # Se VITE_API_BASE_URL estiver definido, injeta a origem no connect-src
-            if [ -n "${{ secrets.VITE_API_BASE_URL }}" ]; then
-              ORIGIN=$(echo "${{ secrets.VITE_API_BASE_URL }}" | sed -E 's#^([A-Za-z][A-Za-z0-9+.-]*://[^/]+).*$#\1#')
+            # Se CHOSEN_API_BASE estiver definido, injeta a origem no connect-src
+            if [ -n "${CHOSEN_API_BASE}" ]; then
+              ORIGIN=$(echo "${CHOSEN_API_BASE}" | sed -E 's#^([A-Za-z][A-Za-z0-9+.-]*://[^/]+).*$#\1#')
               if [ -n "$ORIGIN" ]; then
                 # adiciona $ORIGIN se não existir ainda
                 if ! grep -q "$ORIGIN" "$DIST_FILE"; then
@@ -85,6 +119,7 @@ jobs:
           fi
 
       - name: Deploy no Azure Static Web Apps
+        id: swa_deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
@@ -93,11 +128,14 @@ jobs:
           app_location: 'frontend'
           output_location: 'dist'
           skip_api_build: true
-
-      - name: Exibir URL do frontend
+      
+      - name: Exibir URL real do frontend
         run: |
-          ENV_NAME=${{ github.event.inputs.environment || 'dev' }}
-          SWA_NAME=${{ env.PROJECT_NAME }}-${ENV_NAME}-frontend
-          
           echo "🚀 Frontend deployado!"
-          echo "🔗 Acesse: https://${SWA_NAME}.azurestaticapps.net"
+          if [ -n "${{ steps.swa_deploy.outputs.static_web_app_url }}" ]; then
+            echo "🔗 URL: ${{ steps.swa_deploy.outputs.static_web_app_url }}"
+          elif [ -n "${{ steps.swa_deploy.outputs.environment_url }}" ]; then
+            echo "� URL: ${{ steps.swa_deploy.outputs.environment_url }}"
+          else
+            echo "ℹ️ A URL não foi retornada como output. Veja o log do passo 'Deploy no Azure Static Web Apps' para a URL impressa pelo Action ou confira no Portal do Azure."
+          fi
