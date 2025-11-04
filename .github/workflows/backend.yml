@@ -186,15 +186,15 @@ jobs:
           # Importante: use espaço entre pares (não vírgula) para o az CLI
           ENV_ARGS=""
           if [ -n "${{ secrets.DATABASE_URL }}" ]; then
-            ENV_ARGS="$ENV_ARGS --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }}"
+            ENV_ARGS="$ENV_ARGS --set-env-vars DATABASE_URL='${{ secrets.DATABASE_URL }}'"
           fi
           if [ -n "${{ secrets.ALLOW_ORIGINS }}" ]; then
-            ENV_ARGS="$ENV_ARGS --set-env-vars ALLOW_ORIGINS=${{ secrets.ALLOW_ORIGINS }}"
+            ENV_ARGS="$ENV_ARGS --set-env-vars ALLOW_ORIGINS='${{ secrets.ALLOW_ORIGINS }}'"
           fi
           if [ -n "${{ secrets.STATEMENT_TIMEOUT }}" ]; then
-            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT=${{ secrets.STATEMENT_TIMEOUT }}"
+            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT='${{ secrets.STATEMENT_TIMEOUT }}'"
           else
-            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT=15s"
+            ENV_ARGS="$ENV_ARGS --set-env-vars STATEMENT_TIMEOUT='15s'"
           fi
 
           # shellcheck disable=SC2086
