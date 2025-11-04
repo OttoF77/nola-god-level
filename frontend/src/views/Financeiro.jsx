@@ -177,17 +177,25 @@ export default function FinanceiroView({ meta, role }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={channelMix.map(r=>({ name: r['channel.name'], amount: Number(r['sales.total_amount'])||0, orders: Number(r['sales.orders'])||0 }))}
-              margin={{ top: 10, right: 20, left: 60, bottom: 110 }}
+              margin={{ 
+                top: 10, 
+                right: window.innerWidth < 576 ? 5 : 20, 
+                left: window.innerWidth < 576 ? 10 : 60, 
+                bottom: window.innerWidth < 576 ? 80 : 110 
+              }}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="name" 
-                angle={-35} 
+                angle={window.innerWidth < 576 ? -60 : -35} 
                 textAnchor="end" 
-                height={60}
-                style={{fontSize: 11}}
+                interval={0}
+                height={window.innerWidth < 576 ? 60 : 60}
+                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
               />
               <YAxis 
+                width={window.innerWidth < 576 ? 40 : 60}
+                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
                 tickFormatter={(v) => {
                   if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
                   if (v >= 1000) return `${(v/1000).toFixed(0)}k`
@@ -195,7 +203,7 @@ export default function FinanceiroView({ meta, role }) {
                 }}
               />
               <Tooltip formatter={(v,n)=> n==='amount' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
-              <Legend wrapperStyle={{ paddingTop: '40px' }} />
+              <Legend wrapperStyle={{ paddingTop: window.innerWidth < 576 ? '20px' : '40px', fontSize: window.innerWidth < 576 ? '11px' : '14px' }} />
               <Bar dataKey="amount" name="Faturamento" fill="#2563eb" />
               <Bar dataKey="orders" name="Pedidos" fill="#16a34a" />
             </BarChart>
