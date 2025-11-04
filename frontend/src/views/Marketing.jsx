@@ -140,6 +140,14 @@ export default function MarketingView({ meta, role }) {
     load()
   }, [currentRange])
 
+  // viewport width to support responsive chart layout
+  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024)
+  useEffect(() => {
+    function onResize() { setVw(window.innerWidth) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   // Resumos agregados
   const totals = useMemo(() => {
     const sum = (k) => overviewRows.reduce((acc,r)=>acc+(Number(r[k])||0),0)
@@ -249,38 +257,35 @@ export default function MarketingView({ meta, role }) {
         <div className="card-header fw-semibold">Top 10 produtos por receita</div>
         <div className="p-3 chart-480">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={productBars} 
-              margin={{ 
-                top: 10, 
-                right: window.innerWidth < 576 ? 5 : 20, 
-                left: window.innerWidth < 576 ? 10 : 60, 
-                bottom: window.innerWidth < 576 ? 80 : 130 
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                angle={window.innerWidth < 576 ? -60 : -45} 
-                textAnchor="end" 
-                interval={0} 
-                height={window.innerWidth < 576 ? 60 : 80}
-                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
-              />
-              <YAxis 
-                width={window.innerWidth < 576 ? 40 : 60}
-                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
-                tickFormatter={(v) => {
-                  if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
-                  if (v >= 1000) return `${(v/1000).toFixed(0)}k`
-                  return v
-                }}
-              />
-              <Tooltip formatter={(v, n)=> n==='revenue' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
-              <Legend wrapperStyle={{ paddingTop: window.innerWidth < 576 ? '20px' : '40px', fontSize: window.innerWidth < 576 ? '11px' : '14px' }} />
-              <Bar dataKey="revenue" name="Receita" fill="#2563eb" />
-              <Bar dataKey="quantity" name="Qtde" fill="#16a34a" />
-            </BarChart>
+            {(() => {
+              const isMobile = vw < 576
+              const data = productBars
+              const useHorizontal = isMobile && (data.length >= 4)
+              if (useHorizontal) {
+                return (
+                  <BarChart layout="vertical" data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" style={{ fontSize: 11 }} />
+                    <YAxis dataKey="name" type="category" width={isMobile?120:200} style={{fontSize: isMobile?11:12}} />
+                    <Tooltip formatter={(v, n)=> n==='revenue' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
+                    <Legend wrapperStyle={{ paddingTop: isMobile? '6px' : '20px', fontSize: isMobile? '11px' : '14px' }} />
+                    <Bar dataKey="revenue" name="Receita" fill="#2563eb" />
+                    <Bar dataKey="quantity" name="Qtde" fill="#16a34a" />
+                  </BarChart>
+                )
+              }
+              return (
+                <BarChart data={data} margin={{ top: 10, right: isMobile ? 5 : 20, left: isMobile ? 10 : 60, bottom: isMobile ? 80 : 130 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={isMobile ? -60 : -45} textAnchor="end" interval={0} height={isMobile ? 60 : 80} style={{fontSize: isMobile ? 9 : 11}} />
+                  <YAxis width={isMobile ? 40 : 60} style={{fontSize: isMobile ? 9 : 11}} tickFormatter={(v) => { if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`; if (v >= 1000) return `${(v/1000).toFixed(0)}k`; return v }} />
+                  <Tooltip formatter={(v, n)=> n==='revenue' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
+                  <Legend wrapperStyle={{ paddingTop: isMobile ? '20px' : '40px', fontSize: isMobile ? '11px' : '14px' }} />
+                  <Bar dataKey="revenue" name="Receita" fill="#2563eb" />
+                  <Bar dataKey="quantity" name="Qtde" fill="#16a34a" />
+                </BarChart>
+              )
+            })()}
           </ResponsiveContainer>
         </div>
       </div>

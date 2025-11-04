@@ -123,6 +123,14 @@ export default function FinanceiroView({ meta, role }) {
     load()
   }, [currentRange])
 
+  // viewport width to support responsive chart layout (recompute on resize)
+  const [vw, setVw] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024)
+  useEffect(() => {
+    function onResize() { setVw(window.innerWidth) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   return (
     <div className="container-fluid py-3">
       <h2 className="mb-3">Financeiro</h2>
@@ -175,38 +183,66 @@ export default function FinanceiroView({ meta, role }) {
       <Section title="Receita por canal">
         <div className="p-3 chart-460">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={channelMix.map(r=>({ name: r['channel.name'], amount: Number(r['sales.total_amount'])||0, orders: Number(r['sales.orders'])||0 }))}
-              margin={{ 
-                top: 10, 
-                right: window.innerWidth < 576 ? 5 : 20, 
-                left: window.innerWidth < 576 ? 10 : 60, 
-                bottom: window.innerWidth < 576 ? 80 : 110 
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                angle={window.innerWidth < 576 ? -60 : -35} 
-                textAnchor="end" 
-                interval={0}
-                height={window.innerWidth < 576 ? 60 : 60}
-                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
-              />
-              <YAxis 
-                width={window.innerWidth < 576 ? 40 : 60}
-                style={{fontSize: window.innerWidth < 576 ? 9 : 11}}
-                tickFormatter={(v) => {
-                  if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
-                  if (v >= 1000) return `${(v/1000).toFixed(0)}k`
-                  return v
-                }}
-              />
-              <Tooltip formatter={(v,n)=> n==='amount' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
-              <Legend wrapperStyle={{ paddingTop: window.innerWidth < 576 ? '20px' : '40px', fontSize: window.innerWidth < 576 ? '11px' : '14px' }} />
-              <Bar dataKey="amount" name="Faturamento" fill="#2563eb" />
-              <Bar dataKey="orders" name="Pedidos" fill="#16a34a" />
-            </BarChart>
+            {
+              (() => {
+                const isMobile = vw < 576
+                const data = channelMix.map(r=>({ name: r['channel.name'], amount: Number(r['sales.total_amount'])||0, orders: Number(r['sales.orders'])||0 }))
+                const useHorizontal = isMobile && (data.length >= 4)
+                if (useHorizontal) {
+                  // horizontal layout: Y axis shows categories (names), X axis shows values
+                  return (
+                    <BarChart
+                      layout="vertical"
+                      data={data}
+                      margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" style={{ fontSize: 11 }} />
+                      <YAxis dataKey="name" type="category" width={isMobile?120:200} style={{fontSize: isMobile?11:12}} />
+                      <Tooltip formatter={(v,n)=> n==='amount' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
+                      <Legend wrapperStyle={{ paddingTop: isMobile? '6px' : '20px', fontSize: isMobile? '11px' : '14px' }} />
+                      <Bar dataKey="amount" name="Faturamento" fill="#2563eb" />
+                      <Bar dataKey="orders" name="Pedidos" fill="#16a34a" />
+                    </BarChart>
+                  )
+                }
+                // fallback: vertical bars (original behavior)
+                return (
+                  <BarChart 
+                    data={data}
+                    margin={{ 
+                      top: 10, 
+                      right: isMobile ? 5 : 20, 
+                      left: isMobile ? 10 : 60, 
+                      bottom: isMobile ? 80 : 110 
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={isMobile ? -60 : -35} 
+                      textAnchor="end" 
+                      interval={0}
+                      height={isMobile ? 60 : 60}
+                      style={{fontSize: isMobile ? 9 : 11}}
+                    />
+                    <YAxis 
+                      width={isMobile ? 40 : 60}
+                      style={{fontSize: isMobile ? 9 : 11}}
+                      tickFormatter={(v) => {
+                        if (v >= 1000000) return `${(v/1000000).toFixed(1)}M`
+                        if (v >= 1000) return `${(v/1000).toFixed(0)}k`
+                        return v
+                      }}
+                    />
+                    <Tooltip formatter={(v,n)=> n==='amount' ? Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : Number(v).toLocaleString('pt-BR')} />
+                    <Legend wrapperStyle={{ paddingTop: isMobile ? '20px' : '40px', fontSize: isMobile ? '11px' : '14px' }} />
+                    <Bar dataKey="amount" name="Faturamento" fill="#2563eb" />
+                    <Bar dataKey="orders" name="Pedidos" fill="#16a34a" />
+                  </BarChart>
+                )
+              })()
+            }
           </ResponsiveContainer>
         </div>
       </Section>
