@@ -1,5 +1,26 @@
 # Nola — Analytics de Varejo (FastAPI + React + PostgreSQL)
 
+> Plataforma analítica para varejo/restaurantes com foco em métricas de faturamento, canais, produtos e métodos de pagamento. Monólito modular (FastAPI + React) pronto para evoluir em direção a serviços.
+
+## 📚 Índice
+1. [Visão Geral](#visão-geral)
+2. [Quick Start (Azure)](#-quick-start-azure-deploy)
+3. [Arquitetura](#arquitetura)
+4. [Tecnologias](#tecnologias)
+5. [Screenshots e Fluxo de Uso](#-screenshots-e-fluxo-de-uso)
+  - [Página Inicial / Navegação](#1-página-inicial)
+  - [Aba Marketing](#2-marketing)
+  - [Aba Gerência](#3-gerência)
+  - [Aba Financeiro](#4-financeiro)
+6. [Como Rodar Localmente](#como-rodar-local)
+7. [O Desafio](#o-que-foi-pedido-no-desafio-e-como-atendemos)
+8. [Decisões de Projeto](#decisões-de-projeto)
+9. [Deploy Azure e Custos](#deploy-azure)
+10. [Testes Rápidos](#testes-rápidos)
+11. [Troubleshooting](#troubleshooting)
+
+## Visão Geral
+
 Este projeto implementa um monólito modular com backend FastAPI e frontend React (Vite) para explorar dados de vendas, produtos e pagamentos de uma rede de restaurantes. Ele foi desenvolvido para atender ao desafio descrito em `requisitos-desafio/PROBLEMA.md` e avaliado segundo `requisitos-desafio/AVALIACAO.md`.
 
 ## 🚀 Quick Start (Azure Deploy)
@@ -20,12 +41,12 @@ Para deployar na Azure:
 
 **Guia completo de deploy**: veja `DEPLOY.md` para instruções detalhadas passo a passo.
 
-## Visão geral
+### Resumo Funcional
 
-- Backend: FastAPI com endpoints `/api/metadata`, `/api/query`, `/api/distinct` e `/api/data-range`.
-- Frontend: SPA React com três visões por papel (Marketing, Gerência e Financeiro) e um Explorer para análise livre.
-- Banco: PostgreSQL com schema do desafio, seed via `generate_data.py`.
-- Docker Compose: orquestração de Postgres, Backend e Frontend.
+- **Backend**: Endpoints `/api/metadata`, `/api/query`, `/api/distinct`, `/api/data-range`, healthcheck e otimizações (cache, clamps, timeout).
+- **Frontend**: 3 visões orientadas a papéis + Explorer de análise ad-hoc (query builder visual).
+- **Banco**: PostgreSQL com schema analítico e dados sintéticos gerados (volume configurável).
+- **Infra**: Docker Compose local; preparado para Azure (Container Apps + Static Web Apps + Postgres Flexible Server).
 
 ## Tecnologias
 
@@ -41,6 +62,47 @@ A arquitetura é detalhada em `ARQUITETURA.md`. Destaques:
 - Modelo analítico declarativo em `backend/app/domain/model.yaml`.
 - Cache in-memory com TTL (`backend/app/core/cache.py`).
 - Frontend organizado por views de papel, com componentes reutilizáveis (Explorer e Sidebar/ExplorerControls).
+
+## 📸 Screenshots e Fluxo de Uso
+
+As imagens abaixo ilustram a experiência do usuário e os componentes principais. As capturas estão em `imagens/`.
+
+### 1. Página Inicial
+![Página inicial](imagens/ngl01.png)
+**Destaques:** Navegação clara entre abas (Marketing, Gerência, Financeiro), seletor de período sincronizado via `localStorage`, layout responsivo preparado para mobile, componentes com carregamento incremental e mensagens de estado (loading/erro).
+
+### 2. Marketing
+![Marketing — flags e gráficos](imagens/ngl02.png)
+**Foco:** Faturamento diário por canal (gráfico de linha empilhando cada canal), KPIs agregados (faturamento total, pedidos, ticket médio) e Top 10 produtos (barras). O seletor de período redefine todas as visões. As "flags" representam filtros/período selecionado persistidos, garantindo consistência quando o usuário alterna abas. Em telas pequenas o gráfico de barras alterna para layout horizontal (melhora leitura de nomes de produtos extensos).
+
+**Interações chave:**
+- Filtros de período (Hoje / Mês atual / Personalizado).
+- Tooltip com formatação monetária e abreviação de milhares/milhões.
+- Explorer acoplado para análises adicionais sem sair da aba.
+
+### 3. Gerência
+![Gerência — visão consolidada](imagens/ngl03.png)
+**Foco:** Top 10 lojas por faturamento (barras), faturamento por canal (pizza para proporção relativa) e evolução mensal (linha) dos últimos 6 meses. Combina granularidade temporal agregada (MONTH) com detalhamento categorical. Em mobile as barras podem alternar para horizontal para rótulos extensos de lojas.
+
+**Detalhes:**
+- Cálculo de intervalo de últimos 6 meses derivado do período atual.
+- Validação de status `COMPLETED` para métricas confiáveis.
+- Uso de whitelists por papel para restringir dimensões/medidas.
+
+### 4. Financeiro
+![Financeiro — receitas e mix de pagamentos](imagens/ngl04.png)
+**Foco:** Mix por status (pizza), receita por canal (barras/horizontal em mobile) e mix de métodos de pagamento (pizza). Destaca distribuição de fluxo financeiro e conversão de pedidos. Escala horizontal automática em mobile reduz atrito de leitura.
+
+**Pontos técnicos:**
+- Conversão de valores para BRL com locale `pt-BR`.
+- Condições adaptativas (viewport < 576px) para trocar eixo e margens.
+- Agrupamento por tipos de pagamento para composição de share.
+
+### Padrões de UX aplicados
+- Adaptação de rótulos para legibilidade (ângulo, truncamento potencial, layout horizontal).
+- Margens dinâmicas em gráficos para evitar overlap em telas menores.
+- Feedback imediato de carregamento/erro com estados distintos.
+- Seletor de período compartilhado entre abas (eventos customizados + localStorage).
 
 ## Como rodar (local)
 
