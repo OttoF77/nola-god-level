@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Mobile - Gráficos Responsivos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 100%;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .screen-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .screen-info h2 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #1976d2;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #bbdefb;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .recommendation {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .recommendation h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: #e65100;
+        }
+        
+        .recommendation ul {
+            margin-left: 20px;
+        }
+        
+        .recommendation li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-mobile {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-desktop {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .test-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        
+        .test-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .chart-preview {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+        
+        .chart-info {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 576px) {
+            body {
+                padding: 10px;
+            }
+            
+            .test-container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Teste de Responsividade - Gráficos</h1>
+        
+        <div class="screen-info">
+            <h2>Informações da Tela</h2>
+            <div class="info-row">
+                <span class="info-label">Largura da Viewport:</span>
+                <span class="info-value" id="viewport-width">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Altura da Viewport:</span>
+                <span class="info-value" id="viewport-height">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Device Pixel Ratio:</span>
+                <span class="info-value" id="pixel-ratio">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Modo Detectado:</span>
+                <span class="info-value" id="device-mode">-</span>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Configuração do BarChart (Financeiro)</h3>
+            <div class="chart-preview">
+                <div class="chart-info" id="chart-config"></div>
+            </div>
+        </div>
+        
+        <div class="recommendation">
+            <h3>✅ Otimizações Aplicadas</h3>
+            <ul>
+                <li><strong>Marketing.jsx:</strong> Já otimizado com props responsivos (window.innerWidth < 576)</li>
+                <li><strong>Gerencia.jsx:</strong> Já otimizado com props responsivos (window.innerWidth < 576)</li>
+                <li><strong>Financeiro.jsx:</strong> Agora otimizado com props responsivos (commit 50ec499)</li>
+            </ul>
+        </div>
+        
+        <div class="recommendation" style="background: #e8f5e9; border-left-color: #4caf50;">
+            <h3>📱 Para Testar no Frontend Real</h3>
+            <ul>
+                <li>Abra: <a href="https://gentle-beach-03524520f.3.azurestaticapps.net" target="_blank" style="color: #1976d2;">Frontend Azure</a></li>
+                <li>Use DevTools (F12) → Toggle Device Toolbar (Ctrl/Cmd + Shift + M)</li>
+                <li>Teste com: iPhone SE (375px), iPhone 12 Pro (390px), Samsung Galaxy S20 (360px)</li>
+                <li>Verifique: labels legíveis, sem overlap, gráficos ajustados ao viewport</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function updateScreenInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const dpr = window.devicePixelRatio || 1;
+            const isMobile = width < 576;
+            
+            document.getElementById('viewport-width').textContent = width + 'px';
+            document.getElementById('viewport-height').textContent = height + 'px';
+            document.getElementById('pixel-ratio').textContent = dpr.toFixed(2);
+            
+            const modeEl = document.getElementById('device-mode');
+            modeEl.innerHTML = isMobile 
+                ? '<span class="status-badge status-mobile">📱 Mobile</span>' 
+                : '<span class="status-badge status-desktop">🖥️ Desktop</span>';
+            
+            // Simular a lógica do componente React
+            const chartConfig = {
+                margin: {
+                    right: isMobile ? 5 : 20,
+                    left: isMobile ? 10 : 60,
+                    bottom: isMobile ? 80 : 110
+                },
+                xAxis: {
+                    angle: isMobile ? -60 : -35,
+                    fontSize: isMobile ? 9 : 11,
+                    interval: 0
+                },
+                yAxis: {
+                    width: isMobile ? 40 : 60,
+                    fontSize: isMobile ? 9 : 11
+                },
+                legend: {
+                    paddingTop: isMobile ? '20px' : '40px',
+                    fontSize: isMobile ? '11px' : '14px'
+                }
+            };
+            
+            document.getElementById('chart-config').innerHTML = `
+<strong>Margin:</strong> { top: 20, right: ${chartConfig.margin.right}, left: ${chartConfig.margin.left}, bottom: ${chartConfig.margin.bottom} }
+
+<strong>XAxis:</strong>
+  - angle: ${chartConfig.xAxis.angle}
+  - textAnchor: "end"
+  - height: 70
+  - fontSize: ${chartConfig.xAxis.fontSize}
+  - interval: ${chartConfig.xAxis.interval}
+
+<strong>YAxis:</strong>
+  - width: ${chartConfig.yAxis.width}
+  - fontSize: ${chartConfig.yAxis.fontSize}
+
+<strong>Legend:</strong>
+  - paddingTop: ${chartConfig.legend.paddingTop}
+  - fontSize: ${chartConfig.legend.fontSize}
+  - wrapperStyle: { fontSize: '${chartConfig.legend.fontSize}' }
+            `;
+        }
+        
+        // Atualizar ao carregar e ao redimensionar
+        updateScreenInfo();
+        window.addEventListener('resize', updateScreenInfo);
+        
+        // Atualizar a cada segundo (útil quando rotaciona o device)
+        setInterval(updateScreenInfo, 1000);
+    </script>
+</body>
+</html>
