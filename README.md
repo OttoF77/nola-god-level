@@ -8,18 +8,17 @@
 3. [Arquitetura](#arquitetura)
 4. [Tecnologias](#tecnologias)
 5. [Screenshots e Fluxo de Uso](#-screenshots-e-fluxo-de-uso)
-  - [Página Inicial / Navegação](#1-página-inicial)
-  - [Aba Marketing](#2-marketing)
-  - [Aba Gerência](#3-gerência)
-  - [Aba Financeiro](#4-financeiro)
+   - [Página Inicial / Navegação](#1-página-inicial)
+   - [Aba Marketing](#2-marketing)
+   - [Aba Gerência](#3-gerência)
+   - [Aba Financeiro](#4-financeiro)
 6. [Como Rodar Localmente](#como-rodar-local)
 7. [O Desafio](#o-que-foi-pedido-no-desafio-e-como-atendemos)
 8. [Decisões de Projeto](#decisões-de-projeto)
 9. [Deploy Azure e Custos](#deploy-azure)
-10. [Testes Rápidos](#testes-rápidos)
-11. [Troubleshooting](#troubleshooting)
-
-## Visão Geral
+10. [Segurança](#segurança)
+11. [Testes Rápidos](#testes-rápidos)
+12. [Troubleshooting](#troubleshooting)## Visão Geral
 
 Este projeto implementa um monólito modular com backend FastAPI e frontend React (Vite) para explorar dados de vendas, produtos e pagamentos de uma rede de restaurantes. Ele foi desenvolvido para atender ao desafio descrito em `requisitos-desafio/PROBLEMA.md` e avaliado segundo `requisitos-desafio/AVALIACAO.md`.
 
@@ -106,37 +105,83 @@ As imagens abaixo ilustram a experiência do usuário e os componentes principai
 
 ## Como rodar (local)
 
-1. Suba o Postgres e gere dados (opcional):
+### Pré-requisitos
+
+- Docker e Docker Compose instalados
+- (Opcional) Python 3.11+ e Node.js 20+ para desenvolvimento fora do Docker
+
+### 1. Configurar variáveis de ambiente
+
+⚠️ **Importante**: Por segurança, as credenciais não estão mais hardcoded no `docker-compose.yml`.
+
+```bash
+# Copie o template de variáveis de ambiente
+cp .env.example .env
+
+# Edite .env e altere as senhas padrão
+# Use senhas fortes para POSTGRES_PASSWORD e PGADMIN_DEFAULT_PASSWORD
+nano .env  # ou seu editor preferido
+```
+
+Exemplo de `.env` com senhas seguras:
+```bash
+POSTGRES_DB=challenge_db
+POSTGRES_USER=challenge
+POSTGRES_PASSWORD=SuaSenhaForteAqui123!
+
+DATABASE_URL=postgresql://challenge:SuaSenhaForteAqui123!@postgres:5432/challenge_db
+
+PGADMIN_DEFAULT_EMAIL=admin@example.com
+PGADMIN_DEFAULT_PASSWORD=OutraSenhaForte456!
+```
+
+### 2. Suba o Postgres e gere dados (opcional):
 
 ```bash
 # Iniciar Postgres
 docker compose up -d postgres
+
 # Gerar dados (perfil tools)
 docker compose --profile tools run --rm data-generator
 ```
 
-2. Backend em dev (fora do Docker):
+### 3. Backend em dev (fora do Docker):
 
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# Configure DATABASE_URL no terminal ou em backend/.env
+export DATABASE_URL="postgresql://challenge:SuaSenhaForteAqui123!@localhost:5432/challenge_db"
+
 uvicorn app.main:app --reload
 ```
 
-3. Frontend em dev:
+### 4. Frontend em dev:
 
 ```bash
 cd frontend
 npm install
-# configure VITE_API_BASE_URL em frontend/.env.local se necessário
+
+# Configure VITE_API_BASE_URL em frontend/.env.local se necessário
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env.local
+
 npm run dev
 ```
 
-4. End-to-end com Docker Compose:
+### 5. End-to-end com Docker Compose:
 
 ```bash
+# Certifique-se de ter configurado o .env primeiro!
 docker compose up -d backend frontend
 ```
+
+Acesse:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- PgAdmin (opcional): http://localhost:5050 (se executar `docker compose --profile tools up -d pgadmin`)
+
+**Nota de Segurança**: Veja `SECURITY.md` para mais detalhes sobre gerenciamento seguro de credenciais.
 
 ## O que foi pedido no desafio (e como atendemos)
 
@@ -246,6 +291,29 @@ Nota de custos ao cliente: valores estimados — variam por região, tráfego re
 - PostgreSQL em tier Burstable (mais barato).
 - Static Web Apps tier Free (sem custos de banda até 100 GB).
 - Sem Application Insights ou Log Analytics em tier pago (usar built-in logs gratuitos).
+
+## Segurança
+
+### 🔒 Gerenciamento de Credenciais
+
+Este projeto implementa boas práticas de segurança para proteção de credenciais:
+
+- ✅ **Variáveis de ambiente**: Todas as senhas estão em arquivos `.env` (não versionados)
+- ✅ **Template `.env.example`**: Fornece estrutura sem expor credenciais reais
+- ✅ **Validação obrigatória**: Docker Compose falha se variáveis críticas não estiverem definidas
+- ✅ **Documentação**: `SECURITY.md` detalha práticas recomendadas
+
+### Checklist rápido
+
+Antes de rodar o projeto:
+1. ✓ Copie `.env.example` para `.env`
+2. ✓ Altere TODAS as senhas padrão
+3. ✓ Nunca commite o arquivo `.env`
+4. ✓ Em produção, use Azure Key Vault ou equivalente
+
+**Leia mais**: Consulte `SECURITY.md` para guia completo de segurança, incluindo configuração de Azure Key Vault e GitHub Secrets.
+
+**Vulnerabilidade corrigida (2025-11-15)**: Credenciais hardcoded foram removidas do `docker-compose.yml` e substituídas por variáveis de ambiente.
 
 ## Testes rápidos
 
